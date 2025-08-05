@@ -39,7 +39,7 @@ function NewMemory() {
     }
 
     try {
-      await axios.post('/api/memory', {
+      await axios.post('/memory', {
         text,
         emotion: `${emoji} ${emotion}`.trim(),
         color,
