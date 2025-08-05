@@ -44,19 +44,17 @@ exports.getMemoryById = async (req, res) => {
   const memoryId = req.params.id;
 
   try {
-    const memory = await Memory.findById(memoryId).populate('userId', 'displayName');
+    const memory = await Memory.findById(memoryId).populate('userId', '_id displayName');
 
     if (!memory) return res.status(404).json({ error: 'Memory not found' });
 
-    // If owner or public, allow viewing
-    if (
-      memory.userId._id.toString() === req.user.id ||
-      memory.isPublic === true
-    ) {
-      return res.status(200).json(memory);
+    const isOwner = memory.userId._id.toString() === req.user.id;
+
+    if (!memory.isPublic && !isOwner) {
+      return res.status(403).json({ error: 'Not authorized to view this memory' });
     }
 
-    return res.status(403).json({ error: 'Not authorized to view this memory' });
+    res.status(200).json(memory);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch memory' });
