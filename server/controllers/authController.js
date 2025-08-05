@@ -25,7 +25,7 @@ exports.signup = async (req, res) => {
     user.emailVerifyToken = token;
     await user.save();
 
-    const link = `${process.env.CLIENT_URL}/verify-email?token=${token}&id=${user._id}`;
+    const link = `https://sparkly-eclair-0244cb.netlify.app/verify-email?token=${token}&id=${user._id}`;
     await sendEmail({
       to: user.email,
       subject: 'Verify Your Email',
