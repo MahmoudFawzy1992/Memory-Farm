@@ -23,6 +23,24 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, []);
 
+  // ✅ Sync user from localStorage when another tab or component updates
+  useEffect(() => {
+    const syncUserFromStorage = () => {
+      const localUser = localStorage.getItem("user");
+      if (localUser) {
+        try {
+          const parsed = JSON.parse(localUser);
+          setUser(parsed);
+        } catch {
+          console.error("Failed to parse user from localStorage");
+        }
+      }
+    };
+
+    window.addEventListener("storage", syncUserFromStorage);
+    return () => window.removeEventListener("storage", syncUserFromStorage);
+  }, []);
+
   const login = async (email, password) => {
     try {
       await axios.post("/auth/login", { email, password });
@@ -46,8 +64,10 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (updates) => {
     const res = await axios.put("/user/update", updates);
-    setUser(res.data); // 🟢 update local state
-    return res.data;   // ⬅️ allow caller to handle success
+    if (res.data?.user) {
+      setUser(res.data.user); // ✅ correctly update user context
+    }
+    return res.data;
   };
 
   const deleteAccount = async () => {
@@ -65,7 +85,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateProfile,
         deleteAccount,
-        refreshUser: fetchUser, 
+        refreshUser: fetchUser,
       }}
     >
       {children}

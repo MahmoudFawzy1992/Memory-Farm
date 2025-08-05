@@ -30,7 +30,18 @@ exports.updateUser = async (req, res) => {
     }
 
     await user.save();
-    res.json({ message: 'Profile updated' });
+
+    res.json({
+      message: 'Profile updated',
+      user: {
+        id: user._id,
+        displayName: user.displayName,
+        bio: user.bio,
+        location: user.location,
+        isPrivate: user.isPrivate,
+        showFollowList: user.showFollowList,
+      },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update profile' });

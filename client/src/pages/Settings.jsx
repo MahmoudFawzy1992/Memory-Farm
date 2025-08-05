@@ -19,24 +19,35 @@ export default function Settings() {
   const [loading, setLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      await updateProfile({
-        displayName,
-        bio,
-        location,
-        isPrivate,
-        showFollowList,
-      });
-      toast.success("Settings saved!");
-      window.location.reload(); // 🔁 Force reload to sync updated context
-    } catch (err) {
-      toast.error("Failed to save changes");
-    } finally {
-      setLoading(false);
+ const handleSave = async () => {
+  setLoading(true);
+  try {
+    const result = await updateProfile({
+      displayName,
+      bio,
+      location,
+      isPrivate,
+      showFollowList,
+    });
+
+    if (result.user) {
+      // ✅ Update context manually
+      const updatedUser = {
+        ...user,
+        ...result.user,
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      window.dispatchEvent(new Event("storage")); // Trigger sync
     }
-  };
+
+    toast.success("Settings saved!");
+  } catch (err) {
+    toast.error("Failed to save changes");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleDeleteAccount = async () => {
     try {
