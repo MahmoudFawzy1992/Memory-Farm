@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateProfile,
         deleteAccount,
-        refreshUser: fetchUser, // 🔁 Optional if you want to manually refresh later
+        refreshUser: fetchUser, 
       }}
     >
       {children}
