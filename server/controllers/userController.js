@@ -65,8 +65,6 @@ exports.getPublicProfile = async (req, res) => {
       isPublic: true,
     }).sort({ createdAt: -1 });
 
-    console.log("🧠 Public memories found:", memories.length);
-
     res.json({ user, memories });
   } catch (err) {
     console.error("Public profile fetch error:", err);

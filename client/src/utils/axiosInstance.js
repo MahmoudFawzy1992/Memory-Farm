@@ -1,9 +1,8 @@
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: "http://localhost:4000/api",
-  withCredentials: true, // ✅ Required for cookie-based auth
+  baseURL: import.meta.env.VITE_API_URL + "/api",
+  withCredentials: true,
 });
-
 
 export default instance;

@@ -25,7 +25,6 @@ export default function UserProfile() {
   const fetchProfile = async () => {
     try {
       const res = await axios.get(`/user/${id}`);
-      console.log("📦 Public profile response:", res.data); // 🟢 ADD THIS
 
       setProfile(res.data.user || {});
       setMemories(res.data.memories || []);

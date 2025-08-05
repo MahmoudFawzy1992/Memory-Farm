@@ -6,11 +6,6 @@ if (!EMAIL_FROM || !EMAIL_PASS) {
   console.error("❌ Missing EMAIL_FROM or EMAIL_PASS in environment variables");
 }
 
-console.log("ENV CHECK →", {
-  EMAIL_FROM: process.env.EMAIL_FROM,
-  EMAIL_PASS_EXISTS: !!process.env.EMAIL_PASS,
-});
-
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
