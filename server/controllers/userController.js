@@ -69,6 +69,11 @@ exports.getPublicProfile = async (req, res) => {
     );
     if (!user) return res.status(404).json({ error: 'User not found' });
 
+    // ✅ ADD THIS
+    if (user.isPrivate && req.user.id !== req.params.id) {
+      return res.status(403).json({ error: 'This account is private' });
+    }
+
     const userId = new mongoose.Types.ObjectId(req.params.id);
 
     const memories = await Memory.find({

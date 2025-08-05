@@ -11,6 +11,7 @@ export default function UserHeader({
   followStats,
   setFollowStats,
   onReport,
+  hideActions = false,
 }) {
   const { user } = useAuth();
   const isMe = user?._id === profile._id;
@@ -72,7 +73,7 @@ export default function UserHeader({
         </div>
       </div>
 
-      {!isMe && user && (
+      {!isMe && user && !hideActions && (
         <div className="flex gap-2">
           <button
               onClick={() =>

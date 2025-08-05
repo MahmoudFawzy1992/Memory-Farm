@@ -20,45 +20,48 @@ export default function UserProfile() {
   const [showReportModal, setShowReportModal] = useState(false);
 
   const isMe = user?._id === id;
+  const [isPrivate, setIsPrivate] = useState(false);
 
   useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      const res = await axios.get(`/user/${id}`);
+    const fetchProfile = async () => {
+      try {
+        const res = await axios.get(`/user/${id}`);
 
-      setProfile(res.data.user || {});
-      setMemories(res.data.memories || []);
+        setProfile(res.data.user || {});
+        setMemories(res.data.memories || []);
 
-      if (user?._id && res.data.user?.followers?.includes(user._id)) {
-        setIsFollowing(true);
+        if (user?._id && res.data.user?.followers?.includes(user._id)) {
+          setIsFollowing(true);
+        }
+
+        setIsPrivate(res.data.user?.isPrivate && !isMe);
+      } catch (err) {
+        console.error("❌ Failed to load profile:", err);
+        setProfile({ displayName: "Private User", isPrivate: true });
+        setIsPrivate(true);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("❌ Failed to load profile:", err);
-      setProfile({ error: "User not found or account is private" });
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const fetchFollowStats = async () => {
-    try {
-      const [followersRes, followingRes] = await Promise.all([
-        axios.get(`/user/${id}/followers`),
-        axios.get(`/user/${id}/following`)
-      ]);
-      setFollowStats({
-        followers: followersRes.data.followers.length,
-        following: followingRes.data.following.length,
-      });
-    } catch {
-      setFollowStats({ followers: 0, following: 0 });
-    }
-  };
+    const fetchFollowStats = async () => {
+      try {
+        const [followersRes, followingRes] = await Promise.all([
+          axios.get(`/user/${id}/followers`),
+          axios.get(`/user/${id}/following`)
+        ]);
+        setFollowStats({
+          followers: followersRes.data.followers.length,
+          following: followingRes.data.following.length,
+        });
+      } catch {
+        setFollowStats({ followers: 0, following: 0 });
+      }
+    };
 
-  fetchProfile();
-  fetchFollowStats();
-}, [id, user?._id]);
-  
+    fetchProfile();
+    fetchFollowStats();
+  }, [id, user?._id]);
 
   const handleFollowToggle = async () => {
     try {
@@ -85,14 +88,6 @@ export default function UserProfile() {
     return <p className="text-center py-10 text-purple-500">🔄 Loading profile...</p>;
   }
 
-  if (profile?.error) {
-    return (
-      <div className="text-center py-10 text-red-600">
-        <h1 className="text-3xl font-bold mb-2">❌ {profile.error}</h1>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
       <UserHeader
@@ -100,14 +95,24 @@ export default function UserProfile() {
         isMe={isMe}
         isFollowing={isFollowing}
         setIsFollowing={setIsFollowing}
-        onFollowToggle={handleFollowToggle}
+        followStats={followStats}
         setFollowStats={setFollowStats}
         onReport={() => setShowReportModal(true)}
+        hideActions={isPrivate}
       />
 
-      <FollowStats showFollowList={profile.showFollowList} followStats={followStats} />
+      {!isPrivate && (
+        <>
+          <FollowStats showFollowList={profile.showFollowList} followStats={followStats} />
+          <UserMemoryGrid memories={memories} />
+        </>
+      )}
 
-      <UserMemoryGrid memories={memories} />
+      {isPrivate && !isMe && (
+        <div className="text-center py-6 text-gray-600 italic">
+          This account is private. You must follow them to view their profile.
+        </div>
+      )}
 
       <ReportModal
         isOpen={showReportModal}
