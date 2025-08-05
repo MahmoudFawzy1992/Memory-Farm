@@ -19,7 +19,10 @@ app.use(express.json());
 
 // CORS configuration
 app.use(cors({
-  origin: [process.env.CLIENT_URL, 'http://localhost:5173'],
+  origin: [
+    'http://localhost:5173',
+    'https://sparkly-eclair-0244cb.netlify.app',
+  ],
   credentials: true,
 }));
 
