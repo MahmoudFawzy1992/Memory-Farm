@@ -20,7 +20,7 @@ export default function useMemoryViewer(user) {
 
   useEffect(() => {
     axios
-      .get(`/api/memory/${id}`)
+      .get(`/memory/${id}`)
       .then((res) => {
         const emotion = res.data.emotion || "";
         const emojiMatch = emotion.match(/^\p{Emoji}/u);
@@ -42,7 +42,7 @@ export default function useMemoryViewer(user) {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`/api/memory/${id}`);
+      await axios.delete(`/memory/${id}`);
       toast.success("Memory deleted");
       navigate("/");
     } catch {
@@ -53,7 +53,7 @@ export default function useMemoryViewer(user) {
   const handleUpdate = async () => {
     try {
       const emotion = `${editedEmoji} ${editedEmotionText}`.trim();
-      await axios.put(`/api/memory/${id}`, {
+      await axios.put(`/memory/${id}`, {
         text: editedText,
         emotion,
         color: editedColor,
@@ -67,7 +67,7 @@ export default function useMemoryViewer(user) {
 
   const handleToggleVisibility = async () => {
     try {
-      const res = await axios.patch(`/api/memory/${id}/visibility`);
+      const res = await axios.patch(`/memory/${id}/visibility`);
       setMemory((prev) => ({
         ...prev,
         isPublic: res.data.isPublic,
