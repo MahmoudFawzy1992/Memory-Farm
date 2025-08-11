@@ -1,52 +1,55 @@
 // Home.jsx
-import { useState } from 'react'
-import MemoryCard from '../components/MemoryCard'
-import FilterBar from '../components/FilterBar'
-import ConfirmDeleteModal from '../components/ConfirmDeleteModal'
-import PageWrapper from '../components/PageWrapper'
-import { useMemories } from '../hooks/useMemories'
-import { useDeleteMemory } from '../hooks/useDeleteMemory'
-import { handleFilter } from '../utils/filterHelpers'
-import { emotions } from '../constants/emotions'
+import { useEffect, useMemo, useState } from 'react';
+import MemoryCard from '../components/MemoryCard';
+import FilterBar from '../components/FilterBar';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import PageWrapper from '../components/PageWrapper';
+import { useMemories } from '../hooks/useMemories';
+import { useDeleteMemory } from '../hooks/useDeleteMemory';
+import { emotions } from '../constants/emotions';
+import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 function Home() {
-  const [selectedEmotion, setSelectedEmotion] = useState('All')
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [selectedMemoryId, setSelectedMemoryId] = useState(null)
+  const [selectedEmotion, setSelectedEmotion] = useState('All');
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedMemoryId, setSelectedMemoryId] = useState(null);
 
-  const {
-    memories,
-    filtered,
-    loading,
-    setMemories,
-    setFiltered
-  } = useMemories()
+  const { memories, loading } = useMemories();
+
+  const filtered = useMemo(() => {
+    const range = { start: startOfMonth(selectedMonth), end: endOfMonth(selectedMonth) };
+    return (memories || []).filter((m) => {
+      const when = m.memoryDate ? new Date(m.memoryDate) : (m.createdAt ? new Date(m.createdAt) : null);
+      if (!when || !isWithinInterval(when, range)) return false;
+      if (selectedEmotion === 'All') return true;
+      return m.emotion?.toLowerCase().includes(selectedEmotion.toLowerCase());
+    });
+  }, [memories, selectedEmotion, selectedMonth]);
 
   const confirmDelete = useDeleteMemory({
     selectedMemoryId,
     memories,
-    setMemories,
+    setMemories: () => {}, // not used when filtering via useMemo
     selectedEmotion,
-    setFiltered,
-    setShowDeleteModal
-  })
+    setFiltered: () => {},
+    setShowDeleteModal,
+  });
 
   const handleDeleteClick = (id) => {
-    setSelectedMemoryId(id)
-    setShowDeleteModal(true)
-  }
-
-  const handleEmotionFilter = (label) => {
-    setSelectedEmotion(label)
-    handleFilter(label, memories, setFiltered)
-  }
+    setSelectedMemoryId(id);
+    setShowDeleteModal(true);
+  };
 
   return (
     <PageWrapper>
       <FilterBar
         emotions={emotions}
         selectedEmotion={selectedEmotion}
-        onFilter={handleEmotionFilter}
+        onFilter={setSelectedEmotion}
+        showMonthPicker
+        month={selectedMonth}
+        onMonthChange={setSelectedMonth}
       />
 
       {loading ? (
@@ -67,7 +70,7 @@ function Home() {
         onConfirm={confirmDelete}
       />
     </PageWrapper>
-  )
+  );
 }
 
-export default Home
+export default Home;

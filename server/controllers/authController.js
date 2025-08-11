@@ -5,8 +5,8 @@ const sendEmail = require('../utils/email');
 
 const cookieOptions = {
   httpOnly: true,
-  secure: true,
-  sameSite: 'none',
+  secure: false,
+  sameSite: 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
@@ -41,14 +41,21 @@ exports.signup = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
-
   try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+    const emailNorm = (req.body.email || '').trim().toLowerCase();
+    const password = req.body.password || '';
+
+    const user = await User.findOne({ email: emailNorm });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
 
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
 
     if (!user.emailVerified) {
       return res.status(403).json({ error: 'Please verify your email before logging in.' });
@@ -66,11 +73,13 @@ exports.login = async (req, res) => {
           email: user.email,
         },
       });
+
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ error: 'Login failed' });
   }
 };
+
 
 exports.logout = (req, res) => {
   res.clearCookie('token', {

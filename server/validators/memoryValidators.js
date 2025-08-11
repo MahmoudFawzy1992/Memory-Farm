@@ -21,4 +21,11 @@ exports.validateMemory = [
     .optional()
     .isBoolean()
     .withMessage('isPublic must be true or false'),
+
+  body('memoryDate')
+    .notEmpty()
+    .withMessage('Memory date is required')
+    .isISO8601()
+    .withMessage('Memory date must be a valid date in YYYY-MM-DD format')
+    .toDate() // ✅ converts to JS Date object for Mongoose
 ];

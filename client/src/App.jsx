@@ -10,8 +10,11 @@ import VerifyPrompt from "./pages/VerifyPrompt";
 import VerifyEmail from "./pages/VerifyEmail";
 import Settings from "./pages/Settings";
 import Discover from "./pages/Discover";
-import UserProfile from "./pages/UserProfile"; // 🆕
-import Dashboard from "./pages/Dashboard"; // 🆕
+import UserProfile from "./pages/UserProfile";
+import Dashboard from "./pages/Dashboard";
+import MoodTracker from "./pages/MoodTracker";
+import ForgotPassword from "./pages/ForgotPassword";   // 🆕
+import ResetPassword from "./pages/ResetPassword";     // 🆕
 
 import { AnimatePresence } from "framer-motion";
 import PrivateRoute from "./components/routes/PrivateRoute";
@@ -22,13 +25,14 @@ function App() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* 🌐 All pages wrapped in Layout */}
         <Route path="/" element={<Layout />}>
           {/* Public Routes */}
           <Route path="login" element={<Login />} />
           <Route path="signup" element={<Signup />} />
           <Route path="verify-prompt" element={<VerifyPrompt />} />
           <Route path="verify-email" element={<VerifyEmail />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />   {/* 🆕 */}
+          <Route path="reset-password" element={<ResetPassword />} />     {/* 🆕 */}
 
           {/* Private Routes */}
           <Route
@@ -76,6 +80,14 @@ function App() {
             element={
               <PrivateRoute>
                 <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="mood-tracker"
+            element={
+              <PrivateRoute>
+                <MoodTracker />
               </PrivateRoute>
             }
           />

@@ -10,9 +10,18 @@ const {
   getFollowers,
   getFollowing
 } = require('../controllers/userController');
+const { getUserPublicMemories } = require('../controllers/user/userMemoryController');
+const { validateCursorPage } = require('../validators/paginationValidators');
+const { validationResult } = require('express-validator');
 
 // ✅ Middleware applied to all user routes
 router.use(requireAuth);
+
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+  next();
+};
 
 // 🔍 Get current user's profile
 router.get('/me', async (req, res) => {
@@ -34,6 +43,9 @@ router.delete('/delete', deleteUser);
 
 // 👤 View public profile and shared memories
 router.get('/:id', getPublicProfile);
+
+// 🧠 User's public memories (paginated)
+router.get('/:id/memories', validateCursorPage, handleValidationErrors, getUserPublicMemories);
 
 // ➕ Follow a user
 router.post('/follow/:id', followUser);
