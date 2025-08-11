@@ -9,9 +9,7 @@ export default function MemoryControls({
       <button
         onClick={onToggleVisibility}
         className={`text-xs px-3 py-1 rounded ${
-          isPublic
-            ? "bg-green-100 text-green-700"
-            : "bg-yellow-100 text-yellow-700"
+          isPublic ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
         }`}
       >
         {isPublic ? "🌍 Public" : "🔒 Private"}

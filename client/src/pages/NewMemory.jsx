@@ -4,13 +4,15 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../context/NotificationContext';
 import MemoryForm from '../components/MemoryForm';
+import { format } from 'date-fns';
 
 function NewMemory() {
   const [text, setText] = useState('');
   const [emoji, setEmoji] = useState('🌸');
   const [emotion, setEmotion] = useState('');
   const [color, setColor] = useState('purple-500');
-  const [isPublic, setIsPublic] = useState(false); 
+  const [isPublic, setIsPublic] = useState(false);
+  const [memoryDate, setMemoryDate] = useState(new Date());
 
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
@@ -18,32 +20,28 @@ function NewMemory() {
 
   const validateMemory = () => {
     const newErrors = {};
-    if (!text.trim()) {
-      newErrors.text = 'Memory text is required.';
-    }
-
+    if (!text.trim()) newErrors.text = 'Memory text is required.';
     if (color && !/^(\w+-\d{3})$/.test(color)) {
       newErrors.color = 'Color format must be like purple-500';
     }
-
+    if (!memoryDate) newErrors.memoryDate = 'Please select the memory date.';
     return newErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validateMemory();
-
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-
     try {
       await axios.post('/memory', {
         text,
         emotion: `${emoji} ${emotion}`.trim(),
         color,
-        isPublic, // ✅ send visibility
+        isPublic,
+        memoryDate: format(memoryDate, 'yyyy-MM-dd'),
       });
       showNotification('✅ Memory saved successfully!');
       navigate('/');
@@ -63,7 +61,6 @@ function NewMemory() {
     >
       <h2 className="text-2xl font-bold text-purple-600 mb-4">Create a New Memory ✨</h2>
 
-      {/* ✅ Public toggle */}
       <div className="flex items-center mb-4">
         <input
           id="isPublic"
@@ -86,6 +83,8 @@ function NewMemory() {
         setEmotion={setEmotion}
         color={color}
         setColor={setColor}
+        memoryDate={memoryDate}
+        setMemoryDate={setMemoryDate}
         onSubmit={handleSubmit}
         errors={errors}
       />

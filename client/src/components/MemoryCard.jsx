@@ -2,8 +2,9 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import axios from "../utils/axiosInstance";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "react-toastify";
+import { format } from "date-fns";
 import ReportModal from "./ReportModal";
 
 function MemoryCard({ memory, onDelete }) {
@@ -15,20 +16,29 @@ function MemoryCard({ memory, onDelete }) {
     ? `border-t-4 border-${memory.color}`
     : "border-t-4 border-purple-500";
 
+  // Author shape can be memory.author or memory.userId depending on endpoint
+  const authorObj = memory.author || memory.userId || null;
+  const myId = user?._id || user?.id;
+  const authorId = authorObj?._id || authorObj?.id;
   const showAuthor =
-    memory?.author &&
-    memory.author.displayName &&
-    memory.author._id &&
-    (!user || memory.author._id !== user.id);
+    authorObj && authorObj.displayName && authorId && (!myId || authorId !== myId);
+  const isMine = Boolean(myId && authorId && myId === authorId);
 
-  const isMine = user && memory.author && memory.author._id === user.id;
+  const displayDate = useMemo(() => {
+    const d = memory.memoryDate || memory.createdAt;
+    try {
+      return d ? format(new Date(d), "MMM d, yyyy") : null;
+    } catch {
+      return null;
+    }
+  }, [memory.memoryDate, memory.createdAt]);
 
   const handleToggleVisibility = async () => {
     try {
       const res = await axios.patch(`/memory/${memory._id}/visibility`);
       setIsPublic(res.data.isPublic);
       toast.success(`Memory is now ${res.data.isPublic ? "public" : "private"}`);
-    } catch (err) {
+    } catch {
       toast.error("Failed to toggle visibility");
     }
   };
@@ -40,29 +50,26 @@ function MemoryCard({ memory, onDelete }) {
         whileHover={{ scale: 1.02 }}
       >
         <Link to={`/memory/${memory._id}`}>
-          <p className="text-lg font-medium text-gray-700 line-clamp-3">
-            {memory.text}
-          </p>
-          <p
-            className={`text-sm mt-1 italic text-${memory.color || "purple-500"}`}
-          >
+          <p className="text-lg font-medium text-gray-700 line-clamp-3">{memory.text}</p>
+          <p className={`text-sm mt-1 italic text-${memory.color || "purple-500"}`}>
             {memory.emotion}
           </p>
         </Link>
 
+        {/* Memory date chip */}
+        {displayDate && (
+          <div className="mt-1 text-xs text-gray-500">{displayDate}</div>
+        )}
+
         {showAuthor && (
           <div className="mt-2 text-sm text-gray-500">
             👤{" "}
-            <Link
-              to={`/user/${memory.author._id}`}
-              className="font-medium text-purple-700 hover:underline"
-            >
-              {memory.author.displayName}
+            <Link to={`/user/${authorId}`} className="font-medium text-purple-700 hover:underline">
+              {authorObj.displayName}
             </Link>
           </div>
         )}
 
-        {/* 🟢 Visibility tag now above report button */}
         <span
           className={`absolute bottom-9 right-2 text-xs font-semibold ${
             isPublic ? "text-green-600" : "text-yellow-600"

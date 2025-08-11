@@ -14,6 +14,7 @@ const { validateSignup, validateLogin } = require('../validators/authValidators'
 const { validationResult } = require('express-validator');
 
 const router = express.Router();
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://sparkly-eclair-0244cb.netlify.app';
 
 // Middleware to handle validation errors
 const handleValidationErrors = (req, res, next) => {
@@ -46,7 +47,7 @@ router.post('/resend-verification', async (req, res) => {
     user.emailVerifyToken = token;
     await user.save();
 
-    const link = `https://sparkly-eclair-0244cb.netlify.app/reset-password?token=${token}&id=${user._id}`;
+    const link = `${FRONTEND_URL}/verify-email?token=${token}&id=${user._id}`;
 
     await sendEmail({
       to: user.email,
@@ -74,10 +75,10 @@ router.post('/forgot-password', async (req, res) => {
 
     const token = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 1000 * 60 * 30;
+    user.resetPasswordExpires = Date.now() + 1000 * 60 * 30; // 30 minutes
     await user.save();
 
-    const link = `https://sparkly-eclair-0244cb.netlify.app/verify-email?token=${token}&id=${user._id}`;
+    const link = `${FRONTEND_URL}/reset-password?token=${token}&id=${user._id}`;
 
     await sendEmail({
       to: user.email,
@@ -87,6 +88,7 @@ router.post('/forgot-password', async (req, res) => {
 
     res.json({ message: 'Reset email sent' });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to send reset email' });
   }
 });
@@ -112,6 +114,7 @@ router.post('/reset-password/:token', async (req, res) => {
 
     res.json({ message: 'Password reset successful' });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to reset password' });
   }
 });

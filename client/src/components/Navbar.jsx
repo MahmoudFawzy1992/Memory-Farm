@@ -35,6 +35,10 @@ function Navbar() {
               <NavLink to="/new" className={navLinkClass}>
                 📝 New Memory
               </NavLink>
+              <NavLink to="/mood-tracker" className={navLinkClass}>
+                📊 Mood Tracker
+              </NavLink>
+
               <ProfileMenu />
             </>
           ) : (

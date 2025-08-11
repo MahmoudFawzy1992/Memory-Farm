@@ -28,6 +28,8 @@ function ViewMemory() {
     setEditedEmotionText,
     editedEmoji,
     setEditedEmoji,
+    editedMemoryDate,
+    setEditedMemoryDate,
     showPicker,
     setShowPicker,
     handleDelete,
@@ -39,7 +41,6 @@ function ViewMemory() {
   return (
     <>
       <LoadingOrError loading={loading} memory={memory} />
-
       {!loading && !memory && <MemoryNotFound />}
 
       {!loading && memory && (
@@ -50,7 +51,6 @@ function ViewMemory() {
           exit={{ opacity: 0 }}
         >
           <MemoryHeader memory={memory} user={user} />
-
           <MemoryDetails memory={memory} />
 
           {isOwner && (
@@ -76,6 +76,8 @@ function ViewMemory() {
             setShowPicker={setShowPicker}
             editedColor={editedColor}
             setEditedColor={setEditedColor}
+            editedMemoryDate={editedMemoryDate}
+            setEditedMemoryDate={setEditedMemoryDate}
           />
 
           <ConfirmDeleteModal

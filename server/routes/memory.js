@@ -4,52 +4,77 @@ const requireAuth = require('../middleware/requireAuth');
 const {
   toggleVisibility,
   getPublicMemories,
-  getMemoryById, // ✅ NEW
+  getMemoryById,
+  getCalendarSummary,
+  getMemoriesByDate,
+  getMoodDistribution,
+  getMoodTrend,
 } = require('../controllers/memoryController');
+const {
+  getPublicDistribution,
+  getPublicTrend,
+} = require('../controllers/publicAnalyticsController');
+const { getMyMemoriesPaginated, getPublicMemoriesPaginated } = require('../controllers/memory/listController');
 const { validateMemory } = require('../validators/memoryValidators');
+const {
+  validateCalendarSummary,
+  validateByDate,
+  validateMoodDistribution,
+  validateMoodTrend,
+} = require('../validators/analyticsValidators');
+const { validateCursorPage } = require('../validators/paginationValidators');
 const { validationResult } = require('express-validator');
 const Memory = require('../models/Memory');
 
-// Protect all memory routes
 router.use(requireAuth);
 
-// Handle validation errors
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ error: errors.array()[0].msg });
-  }
+  if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
   next();
 };
 
-// Create new memory
+// Pagination (add these first so they don't clash)
+router.get('/paginated', validateCursorPage, handleValidationErrors, getMyMemoriesPaginated);
+router.get('/public/paginated', validateCursorPage, handleValidationErrors, getPublicMemoriesPaginated);
+
+// User-scoped calendar + analytics
+router.get('/calendar/summary', validateCalendarSummary, handleValidationErrors, getCalendarSummary);
+router.get('/calendar/by-date', validateByDate, handleValidationErrors, getMemoriesByDate);
+router.get('/analytics/mood-distribution', validateMoodDistribution, handleValidationErrors, getMoodDistribution);
+router.get('/analytics/mood-trend', validateMoodTrend, handleValidationErrors, getMoodTrend);
+
+// Public (global) analytics — still behind auth, but only aggregates isPublic:true
+router.get('/analytics/public/distribution', validateMoodDistribution, handleValidationErrors, getPublicDistribution);
+router.get('/analytics/public/trend', validateMoodTrend, handleValidationErrors, getPublicTrend);
+
+// Create
 router.post('/', validateMemory, handleValidationErrors, async (req, res) => {
   try {
-    const memory = await Memory.create({
-      ...req.body,
-      userId: req.user.id,
-    });
+    const memory = await Memory.create({ ...req.body, userId: req.user.id });
     res.status(201).json(memory);
-  } catch (err) {
-    console.error(err);
+  } catch {
     res.status(500).json({ error: 'Failed to create memory' });
   }
 });
 
-// Get all memories for current user
+// List mine (legacy full list)
 router.get('/', async (req, res) => {
   try {
     const memories = await Memory.find({ userId: req.user.id }).sort({ createdAt: -1 });
     res.json(memories);
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to fetch memories' });
   }
 });
 
-// ✅ Get a single memory (handles private/public access)
+// Public feed (legacy full list)
+router.get('/public/all', getPublicMemories);
+
+// Read one (enforces privacy inside controller)
 router.get('/:id', getMemoryById);
 
-// Update memory
+// Update
 router.put('/:id', validateMemory, handleValidationErrors, async (req, res) => {
   try {
     const updated = await Memory.findOneAndUpdate(
@@ -59,29 +84,23 @@ router.put('/:id', validateMemory, handleValidationErrors, async (req, res) => {
     );
     if (!updated) return res.status(404).json({ error: 'Memory not found' });
     res.json(updated);
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to update memory' });
   }
 });
 
-// Delete memory
+// Delete
 router.delete('/:id', async (req, res) => {
   try {
-    const deleted = await Memory.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user.id,
-    });
+    const deleted = await Memory.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
     if (!deleted) return res.status(404).json({ error: 'Memory not found' });
     res.json({ success: true });
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: 'Failed to delete memory' });
   }
 });
 
-// Toggle visibility
+// Visibility toggle
 router.patch('/:id/visibility', toggleVisibility);
-
-// Public feed
-router.get('/public/all', getPublicMemories);
 
 module.exports = router;

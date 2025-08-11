@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "../utils/axiosInstance";
 import { toast } from "react-toastify";
+import { formatISO } from "date-fns";
 
 export default function useMemoryViewer(user) {
   const { id } = useParams();
@@ -16,22 +17,25 @@ export default function useMemoryViewer(user) {
   const [editedText, setEditedText] = useState("");
   const [editedEmotionText, setEditedEmotionText] = useState("");
   const [editedEmoji, setEditedEmoji] = useState("");
+  const [editedMemoryDate, setEditedMemoryDate] = useState(null); // NEW
   const [showPicker, setShowPicker] = useState(false);
 
   useEffect(() => {
     axios
       .get(`/memory/${id}`)
       .then((res) => {
-        const emotion = res.data.emotion || "";
+        const m = res.data;
+        const emotion = m.emotion || "";
         const emojiMatch = emotion.match(/^\p{Emoji}/u);
         const emoji = emojiMatch ? emojiMatch[0] : "";
         const label = emoji ? emotion.slice(emoji.length).trim() : emotion;
 
-        setMemory(res.data);
-        setEditedText(res.data.text);
+        setMemory(m);
+        setEditedText(m.text || "");
         setEditedEmoji(emoji);
         setEditedEmotionText(label);
-        setEditedColor(res.data.color || "purple-500");
+        setEditedColor(m.color || "purple-500");
+        setEditedMemoryDate(m.memoryDate ? new Date(m.memoryDate) : new Date(m.createdAt));
         setLoading(false);
       })
       .catch((err) => {
@@ -57,6 +61,7 @@ export default function useMemoryViewer(user) {
         text: editedText,
         emotion,
         color: editedColor,
+        memoryDate: editedMemoryDate ? formatISO(editedMemoryDate, { representation: "date" }) : undefined,
       });
       setShowModal(false);
       window.location.reload();
@@ -68,22 +73,15 @@ export default function useMemoryViewer(user) {
   const handleToggleVisibility = async () => {
     try {
       const res = await axios.patch(`/memory/${id}/visibility`);
-      setMemory((prev) => ({
-        ...prev,
-        isPublic: res.data.isPublic,
-      }));
-      toast.success(
-        `Memory is now ${res.data.isPublic ? "public" : "private"}`
-      );
+      setMemory((prev) => ({ ...prev, isPublic: res.data.isPublic }));
+      toast.success(`Memory is now ${res.data.isPublic ? "public" : "private"}`);
     } catch {
       toast.error("Failed to toggle visibility");
     }
   };
 
-const isOwner =
-  user &&
-  memory &&
-  (memory.userId === user._id || memory.userId?._id === user._id);
+  const isOwner =
+    user && memory && (memory.userId === user._id || memory.userId?._id === user._id);
 
   return {
     memory,
@@ -100,6 +98,8 @@ const isOwner =
     setEditedEmotionText,
     editedEmoji,
     setEditedEmoji,
+    editedMemoryDate,
+    setEditedMemoryDate,
     showPicker,
     setShowPicker,
     handleDelete,

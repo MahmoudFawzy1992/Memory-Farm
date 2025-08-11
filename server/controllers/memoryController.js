@@ -1,62 +1,20 @@
-const Memory = require('../models/Memory');
+// Re-export split controllers to keep routes unchanged.
 
-// ✅ Toggle public/private visibility for a memory
-exports.toggleVisibility = async (req, res) => {
-  const memoryId = req.params.id;
+const { toggleVisibility } = require('./memory/visibilityController');
+const { getPublicMemories, getMemoryById } = require('./memory/publicController');
+const {
+  getCalendarSummary,
+  getMemoriesByDate,
+  getMoodDistribution,
+  getMoodTrend,
+} = require('./memory/analyticsController');
 
-  try {
-    const memory = await Memory.findById(memoryId);
-
-    if (!memory) return res.status(404).json({ error: 'Memory not found' });
-    if (memory.userId.toString() !== req.user.id) {
-      return res.status(403).json({ error: 'Not authorized to update this memory' });
-    }
-
-    memory.isPublic = !memory.isPublic;
-    await memory.save();
-
-    res.json({
-      message: `Memory is now ${memory.isPublic ? 'public' : 'private'}`,
-      isPublic: memory.isPublic,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to update memory visibility' });
-  }
-};
-
-// ✅ Get all public memories (for explore or feed)
-exports.getPublicMemories = async (req, res) => {
-  try {
-    const memories = await Memory.find({ isPublic: true })
-      .populate('userId', 'displayName')
-      .sort({ createdAt: -1 });
-
-    res.json({ memories });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch public memories' });
-  }
-};
-
-// ✅ Get memory by ID (either owned or public)
-exports.getMemoryById = async (req, res) => {
-  const memoryId = req.params.id;
-
-  try {
-    const memory = await Memory.findById(memoryId).populate('userId', '_id displayName');
-
-    if (!memory) return res.status(404).json({ error: 'Memory not found' });
-
-    const isOwner = memory.userId._id.toString() === req.user.id;
-
-    if (!memory.isPublic && !isOwner) {
-      return res.status(403).json({ error: 'Not authorized to view this memory' });
-    }
-
-    res.status(200).json(memory);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch memory' });
-  }
+module.exports = {
+  toggleVisibility,
+  getPublicMemories,
+  getMemoryById,
+  getCalendarSummary,
+  getMemoriesByDate,
+  getMoodDistribution,
+  getMoodTrend,
 };

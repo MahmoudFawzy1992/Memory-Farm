@@ -1,6 +1,7 @@
 import EmojiPicker from './EmojiPicker';
 import EmotionSelect from './EmotionSelect';
 import ColorSelect from './ColorSelect';
+import DatePicker from 'react-datepicker';
 
 function MemoryForm({
   text,
@@ -11,6 +12,8 @@ function MemoryForm({
   setEmotion,
   color,
   setColor,
+  memoryDate,
+  setMemoryDate,
   onSubmit,
   errors = {}
 }) {
@@ -23,9 +26,7 @@ function MemoryForm({
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
-        {errors.text && (
-          <p className="text-sm text-red-600 mt-1">{errors.text}</p>
-        )}
+        {errors.text && <p className="text-sm text-red-600 mt-1">{errors.text}</p>}
       </div>
 
       <div className="flex gap-4 items-start">
@@ -35,9 +36,21 @@ function MemoryForm({
 
       <div>
         <ColorSelect color={color} setColor={setColor} />
-        {errors.color && (
-          <p className="text-sm text-red-600 mt-1">{errors.color}</p>
-        )}
+        {errors.color && <p className="text-sm text-red-600 mt-1">{errors.color}</p>}
+      </div>
+
+      {/* Date Picker */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Memory Date</label>
+        <DatePicker
+          selected={memoryDate}
+          onChange={(date) => setMemoryDate(date)}
+          dateFormat="yyyy-MM-dd"
+          className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+          maxDate={new Date()}
+          placeholderText="Select the date of this memory"
+        />
+        {errors.memoryDate && <p className="text-sm text-red-600 mt-1">{errors.memoryDate}</p>}
       </div>
 
       <button
