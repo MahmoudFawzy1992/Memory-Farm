@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
+import LandingPage from "./pages/LandingPage"; // 🆕 Landing page for guests
 import NewMemory from "./pages/NewMemory";
 import ViewMemory from "./pages/ViewMemory";
 import NotFound from "./pages/NotFound";
@@ -13,14 +14,16 @@ import Discover from "./pages/Discover";
 import UserProfile from "./pages/UserProfile";
 import Dashboard from "./pages/Dashboard";
 import MoodTracker from "./pages/MoodTracker";
-import ForgotPassword from "./pages/ForgotPassword";   // 🆕
-import ResetPassword from "./pages/ResetPassword";     // 🆕
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 import { AnimatePresence } from "framer-motion";
 import PrivateRoute from "./components/routes/PrivateRoute";
+import { useAuth } from "./context/AuthContext"; // 🆕 Import auth context
 
 function App() {
   const location = useLocation();
+  const { user } = useAuth(); // 🆕 Get current user
 
   return (
     <AnimatePresence mode="wait">
@@ -31,18 +34,24 @@ function App() {
           <Route path="signup" element={<Signup />} />
           <Route path="verify-prompt" element={<VerifyPrompt />} />
           <Route path="verify-email" element={<VerifyEmail />} />
-          <Route path="forgot-password" element={<ForgotPassword />} />   {/* 🆕 */}
-          <Route path="reset-password" element={<ResetPassword />} />     {/* 🆕 */}
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password" element={<ResetPassword />} />
 
-          {/* Private Routes */}
+          {/* 🆕 Smart Home Route - Landing for guests, Home for users */}
           <Route
             index
             element={
-              <PrivateRoute>
-                <Home />
-              </PrivateRoute>
+              user ? (
+                <PrivateRoute>
+                  <Home />
+                </PrivateRoute>
+              ) : (
+                <LandingPage />
+              )
             }
           />
+
+          {/* Private Routes */}
           <Route
             path="new"
             element={

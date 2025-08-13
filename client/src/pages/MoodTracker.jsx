@@ -1,145 +1,158 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState, useMemo } from "react";
 import DatePicker from "react-datepicker";
-import { startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, format } from "date-fns";
-import { getCalendarSummary, getMemoriesByDate, getMoodDistribution, getMoodTrend } from "../services/analyticsService";
+import { eachDayOfInterval, startOfMonth, endOfMonth, format } from "date-fns";
+
 import PageWrapper from "../components/PageWrapper";
-import MemoryCard from "../components/MemoryCard";
 import FilterBar from "../components/FilterBar";
 import DistributionChart from "../components/DistributionChart";
-import TrendChart from "../components/TrendChart";
-import StatsBadges from "../components/StatsBadges";
+import { emotions } from "../constants/emotions";
+
+// Custom hooks
+import { useMoodData } from "../hooks/useMoodData";
+import { useDayMemories } from "../hooks/useDayMemories";
+
+// Split components
+import MoodStats from "../components/mood-tracker/MoodStats";
+import MoodCalendar from "../components/mood-tracker/MoodCalendar";
+import GlobalTrendChart from "../components/mood-tracker/GlobalTrendChart";
+import MemoriesView from "../components/mood-tracker/MemoriesView";
+
+// Utils
+import { groupDistributionByEmotion, filterMemoriesByEmotion } from "../utils/moodCalculations";
 
 export default function MoodTracker() {
   const [month, setMonth] = useState(new Date());
-  const [summary, setSummary] = useState([]);           // [{date,count}]
   const [selectedEmotion, setSelectedEmotion] = useState("All");
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [dayMemories, setDayMemories] = useState([]);
-  const [distribution, setDistribution] = useState([]); // [{emotion,count}]
-  const [trend, setTrend] = useState([]);               // [{date,emotion,count}]
 
-  const days = useMemo(
-    () => eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) }),
+  // Custom hooks for data management
+  const { summary, distribution, globalTrend, monthMemories, loading, error } = useMoodData(month);
+  const { selectedDate, dayMemories, selectDay, clearSelection } = useDayMemories();
+
+  // Computed values
+  const days = useMemo(() => 
+    eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) }), 
     [month]
   );
 
-  useEffect(() => {
-    (async () => {
-      const [s, dist, t] = await Promise.all([
-        getCalendarSummary(month),
-        getMoodDistribution(month),
-        getMoodTrend({ from: format(startOfMonth(month), "yyyy-MM-dd"), to: format(endOfMonth(month), "yyyy-MM-dd"), interval: "day" }),
-      ]);
-      setSummary(s);
-      setDistribution(dist);
-      setTrend(t);
-      setSelectedDate(null);
-      setDayMemories([]);
-    })();
-  }, [month]);
-
-  const countFor = (d) => {
-    const hit = summary.find(x => isSameDay(new Date(x.date), d));
-    return hit?.count || 0;
-  };
-
-  const openDay = async (d) => {
-    setSelectedDate(d);
-    const list = await getMemoriesByDate(d);
-    setDayMemories(
-      selectedEmotion === "All"
-        ? list
-        : list.filter(m => m.emotion?.toLowerCase().includes(selectedEmotion.toLowerCase()))
-    );
-  };
-
-  const streak = useMemo(() => {
-    let max = 0, cur = 0;
-    days.forEach(d => { if (countFor(d) > 0) { cur++; max = Math.max(max, cur); } else { cur = 0; } });
-    return max;
-  }, [days, summary]);
-
-  const totalThisMonth = useMemo(
-    () => distribution.reduce((sum, d) => sum + (d.count || 0), 0),
+  const groupedDistribution = useMemo(() => 
+    groupDistributionByEmotion(distribution), 
     [distribution]
   );
-  const topEmotion = useMemo(() => {
-    if (!distribution.length) return "—";
-    const top = [...distribution].sort((a, b) => (b.count || 0) - (a.count || 0))[0];
-    return top?.emotion || "—";
-  }, [distribution]);
+
+  const filteredMemories = useMemo(() => {
+    const memories = selectedDate ? dayMemories : monthMemories;
+    return filterMemoriesByEmotion(memories, selectedEmotion);
+  }, [dayMemories, monthMemories, selectedDate, selectedEmotion]);
+
+  // Event handlers
+  const handleMonthChange = (newMonth) => {
+    setMonth(newMonth);
+    clearSelection();
+  };
+
+  const handleEmotionFilter = (emotion) => {
+    setSelectedEmotion(emotion);
+  };
+
+  if (loading) {
+    return (
+      <PageWrapper>
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-purple-600 font-medium">Loading your mood data...</p>
+          </div>
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageWrapper>
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="text-center">
+            <div className="text-6xl mb-4">⚠️</div>
+            <p className="text-red-600 font-medium">Failed to load mood data</p>
+            <p className="text-gray-500 text-sm">{error}</p>
+          </div>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
-      <div className="flex items-center justify-between mb-3">
-        <h1 className="text-2xl font-bold text-purple-700">📊 Mood Tracker</h1>
-        <DatePicker
-          selected={month}
-          onChange={setMonth}
-          dateFormat="MMMM yyyy"
-          showMonthYearPicker
-          className="border rounded p-2"
-        />
-      </div>
-
-      {/* Badges */}
-      <div className="mb-4">
-        <StatsBadges total={totalThisMonth} activeDays={summary.filter(d => d.count > 0).length} topEmotion={topEmotion} />
-      </div>
-
-      <FilterBar
-        emotions={[{ label: "All", emoji: "🌀" }, ...distribution.map(d => ({ label: d.emotion || "—", emoji: "" }))]}
-        selectedEmotion={selectedEmotion}
-        onFilter={(label) => setSelectedEmotion(label)}
-        showMonthPicker={false}
-      />
-
-      <div className="grid grid-cols-7 gap-2 mt-2">
-        {days.map((d) => (
-          <button
-            key={d.toISOString()}
-            onClick={() => openDay(d)}
-            className={`p-2 rounded border text-sm text-left hover:bg-purple-50 ${
-              isSameDay(selectedDate || new Date(0), d) ? "bg-purple-100 border-purple-400" : "bg-white"
-            }`}
-            title={`${format(d, "MMM d")} • ${countFor(d)} memories`}
-          >
-            <div className="font-semibold">{format(d, "d")}</div>
-            <div className="text-xs text-gray-600">{countFor(d)} mem</div>
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold text-purple-700 mb-2">Distribution</h2>
-        <DistributionChart
-          data={distribution}
-          selected={selectedEmotion !== "All" ? selectedEmotion : ""}
-          onSelect={(label) => setSelectedEmotion(label === selectedEmotion ? "All" : label)}
-        />
-      </div>
-
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold text-purple-700 mb-2">Trend</h2>
-        <TrendChart data={trend} selected={selectedEmotion} />
-      </div>
-
-      {selectedDate && (
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold text-purple-700 mb-2">
-            {format(selectedDate, "MMM d, yyyy")} – Memories {selectedEmotion !== "All" ? `(${selectedEmotion})` : ""}
-          </h2>
-          {dayMemories.length === 0 ? (
-            <p className="text-gray-500 text-sm">No memories on this day.</p>
-          ) : (
-            <ul className="space-y-4 mt-2">
-              {dayMemories.map((m) => (
-                <MemoryCard key={m._id} memory={m} />
-              ))}
-            </ul>
-          )}
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50">
+        {/* Header */}
+        <div className="bg-white shadow-sm border-b border-purple-100 sticky top-0 z-10">
+          <div className="max-w-6xl mx-auto px-4 py-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-purple-700 mb-2">📊 Mood Tracker</h1>
+                <p className="text-gray-600">Track your emotional journey and patterns</p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Month:</span>
+                <DatePicker
+                  selected={month}
+                  onChange={handleMonthChange}
+                  dateFormat="MMMM yyyy"
+                  showMonthYearPicker
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+
+        <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+          <MoodStats distribution={distribution} summary={summary} month={month} />
+
+          <div className="bg-white rounded-xl shadow-sm p-4">
+            <FilterBar
+              emotions={emotions.map(e => ({ label: e.label, emoji: e.emoji }))}
+              selectedEmotion={selectedEmotion}
+              onFilter={handleEmotionFilter}
+              showMonthPicker={false}
+            />
+          </div>
+
+          <MoodCalendar 
+            days={days}
+            summary={summary}
+            selectedDate={selectedDate}
+            onDayClick={selectDay}
+          />
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Personal Distribution ({format(month, "MMMM yyyy")})
+            </h2>
+            <DistributionChart
+              data={groupedDistribution}
+              selected={selectedEmotion !== "All" ? selectedEmotion : ""}
+              onSelect={(label) => setSelectedEmotion(label === selectedEmotion ? "All" : label)}
+            />
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Global Emotion Trends (Community patterns)
+            </h2>
+            <GlobalTrendChart data={globalTrend} />
+          </div>
+
+          <MemoriesView 
+            filteredMemories={filteredMemories}
+            selectedDate={selectedDate}
+            month={month}
+            selectedEmotion={selectedEmotion}
+            onBackToMonth={clearSelection}
+          />
+        </div>
+      </div>
     </PageWrapper>
   );
 }

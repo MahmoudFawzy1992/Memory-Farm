@@ -5,8 +5,8 @@ const sendEmail = require('../utils/email');
 
 const cookieOptions = {
   httpOnly: true,
-  secure: false,
-  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production', // 🆕 Dynamic based on environment
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 🆕 Dynamic
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
@@ -82,13 +82,14 @@ exports.login = async (req, res) => {
 
 
 exports.logout = (req, res) => {
-  res.clearCookie('token', {
-  httpOnly: true,
-  secure: true,
-  sameSite: 'none',
-});
+    res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  });
 
   res.status(200).json({ message: 'Logged out' });
+
 };
 
 exports.verifyEmail = async (req, res) => {

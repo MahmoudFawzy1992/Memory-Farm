@@ -4,7 +4,6 @@ import { toast } from "react-toastify";
 import ToggleSwitch from "../components/ToggleSwitch";
 import DeleteAccountModal from "../components/DeleteAccountModal";
 import FormInput from "../components/FormInput";
-import ChangePasswordCard from "../components/ChangePasswordCard";
 
 export default function Settings() {
   const { user, logout, updateProfile, deleteAccount } = useAuth();
@@ -66,8 +65,6 @@ export default function Settings() {
           Delete my account
         </button>
       </div>
-
-      <ChangePasswordCard />
 
       {showDeleteModal && (
         <DeleteAccountModal onClose={() => setShowDeleteModal(false)} onConfirm={handleDeleteAccount} />
