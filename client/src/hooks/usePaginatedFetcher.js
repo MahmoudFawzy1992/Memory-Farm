@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "../utils/axiosInstance";
 
@@ -10,7 +9,6 @@ export default function usePaginatedFetcher(buildUrl, { pageSize = 12, autoload 
   const [items, setItems] = useState([]);
   const [cursor, setCursor] = useState(null);
   const [hasMore, setHasMore] = useState(true);
-  // ✅ start "not loading" so the first auto-load can run
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -28,7 +26,14 @@ export default function usePaginatedFetcher(buildUrl, { pageSize = 12, autoload 
       const res = await axios.get(url);
       const next = res.data?.nextCursor ?? null;
       const chunk = res.data?.items ?? [];
-      setItems((prev) => prev.concat(chunk));
+      
+      // ✅ FIX: Prevent duplicates when adding new items
+      setItems((prev) => {
+        const existingIds = new Set(prev.map(item => item._id));
+        const newItems = chunk.filter(item => !existingIds.has(item._id));
+        return prev.concat(newItems);
+      });
+      
       setCursor(next);
       setHasMore(Boolean(next));
     } catch (e) {
@@ -39,7 +44,7 @@ export default function usePaginatedFetcher(buildUrl, { pageSize = 12, autoload 
   }, [url, hasMore, loading]);
 
   useEffect(() => {
-    if (autoload && items.length === 0) load();
+    if (autoload && items.length === 0 && !loading) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoload]);
 

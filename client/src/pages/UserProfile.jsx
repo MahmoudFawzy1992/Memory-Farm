@@ -13,7 +13,6 @@ export default function UserProfile() {
   const { user } = useAuth();
 
   const [profile, setProfile] = useState(null);
-  const [memories, setMemories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followStats, setFollowStats] = useState({ followers: 0, following: 0 });
@@ -25,10 +24,10 @@ export default function UserProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        // ✅ Only fetch user profile, not memories (UserMemoryGrid will handle that)
         const res = await axios.get(`/user/${id}`);
 
         setProfile(res.data.user || {});
-        setMemories(res.data.memories || []);
 
         if (user?._id && res.data.user?.followers?.includes(user._id)) {
           setIsFollowing(true);
@@ -37,8 +36,20 @@ export default function UserProfile() {
         setIsPrivate(res.data.user?.isPrivate && !isMe);
       } catch (err) {
         console.error("❌ Failed to load profile:", err);
-        setProfile({ displayName: "Private User", isPrivate: true });
-        setIsPrivate(true);
+        
+        // Better error handling based on status
+        if (err.response?.status === 404) {
+          setProfile({ displayName: "User Not Found", isPrivate: true });
+          setIsPrivate(true);
+        } else if (err.response?.status === 403) {
+          setProfile({ displayName: "Private User", isPrivate: true });
+          setIsPrivate(true);
+        } else {
+          // Network or other errors
+          toast.error("Failed to load profile. Please try again.");
+          setProfile({ displayName: "Error Loading Profile", isPrivate: true });
+          setIsPrivate(true);
+        }
       } finally {
         setLoading(false);
       }
@@ -54,45 +65,46 @@ export default function UserProfile() {
           followers: followersRes.data.followers.length,
           following: followingRes.data.following.length,
         });
-      } catch {
+      } catch (err) {
+        console.error("Failed to fetch follow stats:", err);
         setFollowStats({ followers: 0, following: 0 });
       }
     };
 
-    fetchProfile();
-    fetchFollowStats();
-  }, [id, user?._id]);
-
-  const handleFollowToggle = async () => {
-    try {
-      if (!user?._id) return toast.error("Please log in first.");
-      if (user._id === id) return toast.error("You can't follow yourself.");
-
-      if (isFollowing) {
-        await axios.post(`/user/unfollow/${id}`);
-        toast.success("Unfollowed");
-        setIsFollowing(false);
-        setFollowStats(prev => ({ ...prev, followers: prev.followers - 1 }));
-      } else {
-        await axios.post(`/user/follow/${id}`);
-        toast.success("Followed");
-        setIsFollowing(true);
-        setFollowStats(prev => ({ ...prev, followers: prev.followers + 1 }));
-      }
-    } catch {
-      toast.error("Failed to update follow status");
+    // Only fetch if we have a valid id
+    if (id) {
+      fetchProfile();
+      fetchFollowStats();
     }
-  };
+  }, [id, user?._id, isMe]);
 
   if (loading) {
-    return <p className="text-center py-10 text-purple-500">🔄 Loading profile...</p>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-purple-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="text-center">
+          <div className="text-6xl mb-4">❌</div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Profile Not Found</h1>
+          <p className="text-gray-600">The user you're looking for doesn't exist.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
       <UserHeader
         profile={profile}
-        isMe={isMe}
         isFollowing={isFollowing}
         setIsFollowing={setIsFollowing}
         followStats={followStats}
@@ -104,13 +116,16 @@ export default function UserProfile() {
       {!isPrivate && (
         <>
           <FollowStats showFollowList={profile.showFollowList} followStats={followStats} />
-          <UserMemoryGrid memories={memories} />
+          {/* ✅ Pass userId instead of memories array */}
+          <UserMemoryGrid userId={id} />
         </>
       )}
 
       {isPrivate && !isMe && (
-        <div className="text-center py-6 text-gray-600 italic">
-          This account is private. You must follow them to view their profile.
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">🔒</div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Private Account</h2>
+          <p className="text-gray-600">This account is private. You must follow them to view their profile.</p>
         </div>
       )}
 

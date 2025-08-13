@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+
 const Memory = require('../../models/Memory');
 const {
   toDateOrNull,
@@ -18,7 +20,7 @@ exports.getCalendarSummary = async (req, res) => {
     const pipeline = [
       {
         $match: {
-          userId: req.user.id,
+          userId: new mongoose.Types.ObjectId(req.user.id),
           $expr: {
             $and: [
               { $gte: [memoryDateExpr, fromUTC] },
@@ -58,6 +60,7 @@ exports.getCalendarSummary = async (req, res) => {
 // All memories for a given day (current user)
 exports.getMemoriesByDate = async (req, res) => {
   try {
+    console.log('🔍 Looking for memories with userId:', req.user.id);
     const base = toDateOrNull(req.query.date);
     if (!base) return res.status(400).json({ error: 'Invalid or missing date' });
 
@@ -65,7 +68,7 @@ exports.getMemoriesByDate = async (req, res) => {
     const toUTCExclusive = addDaysUTC(fromUTC, 1);
 
     const memories = await Memory.find({
-      userId: req.user.id,
+      userId: new mongoose.Types.ObjectId(req.user.id),
       $expr: {
         $and: [
           { $gte: [memoryDateExpr, fromUTC] },
@@ -93,7 +96,7 @@ exports.getMoodDistribution = async (req, res) => {
     const pipeline = [
       {
         $match: {
-          userId: req.user.id,
+          userId: new mongoose.Types.ObjectId(req.user.id),
           $expr: {
             $and: [
               { $gte: [memoryDateExpr, fromUTC] },
@@ -136,7 +139,7 @@ exports.getMoodTrend = async (req, res) => {
     const pipeline = [
       {
         $match: {
-          userId: req.user.id,
+          userId: new mongoose.Types.ObjectId(req.user.id),
           $expr: {
             $and: [
               { $gte: [memoryDateExpr, fromUTC] },

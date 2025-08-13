@@ -22,6 +22,7 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'https://sparkly-eclair-0244cb.netlify.app',
+    'https://memory-farm-production.up.railway.app',
   ],
   credentials: true,
 }));
