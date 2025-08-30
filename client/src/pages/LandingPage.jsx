@@ -21,7 +21,7 @@ export default function LandingPage() {
     },
     {
       icon: "🌍",
-      title: "Social Discovery",
+      title: "Social Connection",
       description: "Connect with others through shared experiences and public memories.",
       gradient: "from-green-400 to-blue-400"
     },
@@ -35,10 +35,22 @@ export default function LandingPage() {
 
   const futureFeatures = [
     { icon: "🤖", title: "AI-Powered Insights", description: "Smart recommendations based on your patterns" },
-    { icon: "🎵", title: "Memory Soundscapes", description: "Audio memories with mood-based music" },
+    { icon: "🌍", title: "Memory Map", description: "Pin your memories across places you've been" },
     { icon: "🌟", title: "Achievement System", description: "Unlock badges for consistent journaling" },
     { icon: "👥", title: "Memory Circles", description: "Private groups for sharing with close friends" }
   ];
+
+  useEffect(() => {
+  const hash = window.location.hash.substring(1);
+  if (hash) {
+    setTimeout(() => {
+      const element = document.getElementById(hash);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  }
+}, []);
 
   useEffect(() => {
     const handleMouseMove = (e) => {

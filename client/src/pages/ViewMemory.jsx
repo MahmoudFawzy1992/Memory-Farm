@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import useMemoryViewer from "../hooks/useMemoryViewer";
@@ -9,9 +10,11 @@ import MemoryDetails from "../components/MemoryDetails";
 import MemoryControls from "../components/MemoryControls";
 import EditMemoryModal from "../components/EditMemoryModal";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
+import ReportModal from "../components/ReportModal";
 
 function ViewMemory() {
   const { user } = useAuth();
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const {
     memory,
@@ -62,6 +65,17 @@ function ViewMemory() {
             />
           )}
 
+          {!isOwner && user && (
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setShowReportModal(true)}
+                className="px-4 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
+              >
+                🚩 Report Memory
+              </button>
+            </div>
+          )}
+
           <EditMemoryModal
             show={showModal}
             onClose={() => setShowModal(false)}
@@ -84,6 +98,13 @@ function ViewMemory() {
             isOpen={showDeleteConfirm}
             onClose={() => setShowDeleteConfirm(false)}
             onConfirm={handleDelete}
+          />
+
+          <ReportModal
+            isOpen={showReportModal}
+            onClose={() => setShowReportModal(false)}
+            targetType="memory"
+            targetId={memory?._id}
           />
         </motion.div>
       )}
