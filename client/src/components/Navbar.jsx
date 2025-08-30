@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import ProfileMenu from "./ProfileMenu";
@@ -6,6 +6,8 @@ import ProfileMenu from "./ProfileMenu";
 function Navbar() {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const navLinkClass = ({ isActive }) =>
     `px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200 ${
@@ -21,12 +23,18 @@ function Navbar() {
         : "text-purple-600 hover:bg-purple-100 hover:text-purple-800"
     }`;
 
-  const scrollToSection = (sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-      setIsMobileMenuOpen(false);
+  const navigateToSection = (sectionId) => {
+    if (location.pathname === '/') {
+      // If already on home/landing page, just scroll
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      // If on another page, navigate to home with hash
+      navigate(`/#${sectionId}`);
     }
+    setIsMobileMenuOpen(false);
   };
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -35,14 +43,14 @@ function Navbar() {
     <nav className="bg-purple-50 border-b border-purple-200 shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* 🌸 Logo / Brand */}
+          {/* Logo / Brand */}
           <h1 className="text-xl font-bold text-purple-700 font-serif">
             <NavLink to="/" className="hover:opacity-80 transition-opacity duration-200">
               🌸 Memory Farm
             </NavLink>
           </h1>
 
-          {/* 🖥️ Desktop Navigation */}
+          {/* Desktop Navigation */}
           <div className="hidden md:flex gap-4 items-center">
             {user ? (
               <>
@@ -63,19 +71,19 @@ function Navbar() {
             ) : (
               <>
                 <button
-                  onClick={() => scrollToSection('features')}
+                  onClick={() => navigateToSection('features')}
                   className="text-purple-600 hover:bg-purple-100 hover:text-purple-800 px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200"
                 >
                   ✨ Features
                 </button>
                 <button
-                  onClick={() => scrollToSection('how-it-works')}
+                  onClick={() => navigateToSection('how-it-works')}
                   className="text-purple-600 hover:bg-purple-100 hover:text-purple-800 px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200"
                 >
                   🚀 How It Works
                 </button>
                 <button
-                  onClick={() => scrollToSection('future')}
+                  onClick={() => navigateToSection('future')}
                   className="text-purple-600 hover:bg-purple-100 hover:text-purple-800 px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200"
                 >
                   🔮 Future
@@ -90,7 +98,7 @@ function Navbar() {
             )}
           </div>
 
-          {/* 📱 Mobile Menu Button */}
+          {/* Mobile Menu Button */}
           <button
             onClick={toggleMobileMenu}
             className="md:hidden p-2 rounded-md text-purple-600 hover:bg-purple-100 transition-colors duration-200"
@@ -111,7 +119,7 @@ function Navbar() {
           </button>
         </div>
 
-        {/* 📱 Mobile Navigation Menu */}
+        {/* Mobile Navigation Menu */}
         <div className={`md:hidden transition-all duration-300 ease-in-out ${
           isMobileMenuOpen 
             ? 'max-h-96 opacity-100 pb-4' 
@@ -139,19 +147,19 @@ function Navbar() {
             ) : (
               <>
                 <button
-                  onClick={() => scrollToSection('features')}
+                  onClick={() => navigateToSection('features')}
                   className="block w-full text-left px-4 py-3 rounded-md text-sm font-semibold text-purple-600 hover:bg-purple-100 hover:text-purple-800 transition-colors duration-200"
                 >
                   ✨ Features
                 </button>
                 <button
-                  onClick={() => scrollToSection('how-it-works')}
+                  onClick={() => navigateToSection('how-it-works')}
                   className="block w-full text-left px-4 py-3 rounded-md text-sm font-semibold text-purple-600 hover:bg-purple-100 hover:text-purple-800 transition-colors duration-200"
                 >
                   🚀 How It Works
                 </button>
                 <button
-                  onClick={() => scrollToSection('future')}
+                  onClick={() => navigateToSection('future')}
                   className="block w-full text-left px-4 py-3 rounded-md text-sm font-semibold text-purple-600 hover:bg-purple-100 hover:text-purple-800 transition-colors duration-200"
                 >
                   🔮 Future

@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 import { format } from "date-fns";
 import ReportModal from "./ReportModal";
 
-function MemoryCard({ memory, onDelete }) {
+function MemoryCard({ memory, onDelete, showReport = false, hideOwnerControls = false, truncateLength = null }) {
   const { user } = useAuth();
   const [isPublic, setIsPublic] = useState(memory.isPublic);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -23,6 +23,14 @@ function MemoryCard({ memory, onDelete }) {
   const showAuthor =
     authorObj && authorObj.displayName && authorId && (!myId || authorId !== myId);
   const isMine = Boolean(myId && authorId && myId === authorId);
+
+  // Truncate text if truncateLength is specified
+  const displayText = useMemo(() => {
+    if (!truncateLength || !memory.text) return memory.text;
+    const words = memory.text.split(' ');
+    if (words.length <= truncateLength) return memory.text;
+    return words.slice(0, truncateLength).join(' ') + '...';
+  }, [memory.text, truncateLength]);
 
   const displayDate = useMemo(() => {
     const d = memory.memoryDate || memory.createdAt;
@@ -50,7 +58,7 @@ function MemoryCard({ memory, onDelete }) {
         whileHover={{ scale: 1.02 }}
       >
         <Link to={`/memory/${memory._id}`}>
-          <p className="text-lg font-medium text-gray-700 line-clamp-3">{memory.text}</p>
+          <p className="text-lg font-medium text-gray-700 line-clamp-3">{displayText}</p>
           <p className={`text-sm mt-1 italic text-${memory.color || "purple-500"}`}>
             {memory.emotion}
           </p>
@@ -78,7 +86,7 @@ function MemoryCard({ memory, onDelete }) {
           {isPublic ? "🌍 Public" : "🔒 Private"}
         </span>
 
-        {isMine && (
+        {isMine && !hideOwnerControls && (
           <button
             onClick={handleToggleVisibility}
             className="absolute top-2 left-2 text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -88,7 +96,7 @@ function MemoryCard({ memory, onDelete }) {
           </button>
         )}
 
-        {onDelete && (
+        {onDelete && !hideOwnerControls && (
           <button
             onClick={() => onDelete(memory._id)}
             className="absolute top-2 right-2 text-red-500 hover:text-red-700"
@@ -98,7 +106,7 @@ function MemoryCard({ memory, onDelete }) {
           </button>
         )}
 
-        {!isMine && (
+        {showReport && !isMine && (
           <button
             onClick={() => setShowReportModal(true)}
             className="absolute bottom-2 right-2 text-sm text-red-500 hover:underline"

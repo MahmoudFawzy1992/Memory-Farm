@@ -61,7 +61,7 @@ export default function UserMemoryGrid({ userId }) {
             {items
               .filter(memory => memory && memory._id) // Filter out any null/undefined memories
               .map((memory) => (
-                <MemoryCard key={memory._id} memory={memory} />
+                <MemoryCard key={memory._id} memory={memory} showReport={true} />
               ))}
           </div>
 

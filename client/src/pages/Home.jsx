@@ -1,5 +1,4 @@
-// Home.jsx
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import MemoryCard from '../components/MemoryCard';
 import FilterBar from '../components/FilterBar';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
@@ -12,20 +11,31 @@ import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 function Home() {
   const [selectedEmotion, setSelectedEmotion] = useState('All');
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [hasUserSelectedMonth, setHasUserSelectedMonth] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedMemoryId, setSelectedMemoryId] = useState(null);
 
   const { memories, loading } = useMemories();
 
   const filtered = useMemo(() => {
-    const range = { start: startOfMonth(selectedMonth), end: endOfMonth(selectedMonth) };
-    return (memories || []).filter((m) => {
-      const when = m.memoryDate ? new Date(m.memoryDate) : (m.createdAt ? new Date(m.createdAt) : null);
-      if (!when || !isWithinInterval(when, range)) return false;
-      if (selectedEmotion === 'All') return true;
-      return m.emotion?.toLowerCase().includes(selectedEmotion.toLowerCase());
-    });
-  }, [memories, selectedEmotion, selectedMonth]);
+    let result = memories || [];
+    
+    // Only apply month filter if user has manually selected a month
+    if (hasUserSelectedMonth && selectedMonth) {
+      const range = { start: startOfMonth(selectedMonth), end: endOfMonth(selectedMonth) };
+      result = result.filter((m) => {
+        const when = m.memoryDate ? new Date(m.memoryDate) : (m.createdAt ? new Date(m.createdAt) : null);
+        return when && isWithinInterval(when, range);
+      });
+    }
+    
+    // Apply emotion filter
+    if (selectedEmotion !== 'All') {
+      result = result.filter(m => m.emotion?.toLowerCase().includes(selectedEmotion.toLowerCase()));
+    }
+    
+    return result;
+  }, [memories, selectedEmotion, selectedMonth, hasUserSelectedMonth]);
 
   const confirmDelete = useDeleteMemory({
     selectedMemoryId,
@@ -41,28 +51,70 @@ function Home() {
     setShowDeleteModal(true);
   };
 
+  const handleMonthChange = (newMonth) => {
+    setSelectedMonth(newMonth);
+    setHasUserSelectedMonth(true);
+  };
+
+  const showAllMemories = () => {
+    setHasUserSelectedMonth(false);
+    setSelectedMonth(new Date());
+  };
+
   return (
     <PageWrapper>
-      <FilterBar
-        emotions={emotions}
-        selectedEmotion={selectedEmotion}
-        onFilter={setSelectedEmotion}
-        showMonthPicker
-        month={selectedMonth}
-        onMonthChange={setSelectedMonth}
-      />
+      <div className="space-y-4">
+        <FilterBar
+          emotions={emotions}
+          selectedEmotion={selectedEmotion}
+          onFilter={setSelectedEmotion}
+          showMonthPicker
+          month={selectedMonth}
+          onMonthChange={handleMonthChange}
+        />
 
-      {loading ? (
-        <p className="text-gray-500">Loading memories...</p>
-      ) : filtered.length === 0 ? (
-        <p className="text-gray-500 text-center mt-6">No memories found.</p>
-      ) : (
-        <ul className="space-y-4 mt-4">
-          {filtered.map((m) => (
-            <MemoryCard key={m._id} memory={m} onDelete={handleDeleteClick} />
-          ))}
-        </ul>
-      )}
+        {hasUserSelectedMonth && (
+          <button
+            onClick={showAllMemories}
+            className="text-sm text-purple-600 hover:text-purple-800 hover:underline transition-colors duration-200"
+          >
+            ← Show all memories
+          </button>
+        )}
+
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="text-center">
+              <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading memories...</p>
+            </div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📝</div>
+            <p className="text-gray-500 text-lg mb-2">
+              {hasUserSelectedMonth ? "No memories found for this month." : "No memories found."}
+            </p>
+            <p className="text-gray-400 text-sm">
+              {hasUserSelectedMonth ? "Try a different month or create your first memory!" : "Start your memory journey today!"}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-gray-600">
+                Showing {filtered.length} {filtered.length === 1 ? 'memory' : 'memories'}
+                {hasUserSelectedMonth && ` for ${selectedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`}
+              </p>
+            </div>
+            <ul className="space-y-4">
+              {filtered.map((m) => (
+                <MemoryCard key={m._id} memory={m} onDelete={handleDeleteClick} />
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
 
       <ConfirmDeleteModal
         isOpen={showDeleteModal}
