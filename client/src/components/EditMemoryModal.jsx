@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
-import EmotionSelect from "./EmotionSelect";
-import ColorSelect from "./ColorSelect";
+// import EmotionSelect from "./EmotionSelect";
+// import ColorSelect from "./ColorSelect";
 import DatePicker from "react-datepicker";
 
 function EditMemoryModal({

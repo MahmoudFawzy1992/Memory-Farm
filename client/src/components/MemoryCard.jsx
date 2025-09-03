@@ -12,25 +12,25 @@ function MemoryCard({ memory, onDelete, showReport = false, hideOwnerControls = 
   const [isPublic, setIsPublic] = useState(memory.isPublic);
   const [showReportModal, setShowReportModal] = useState(false);
 
-  const colorClass = memory.color
-    ? `border-t-4 border-${memory.color}`
-    : "border-t-4 border-purple-500";
+  // Use preview text from backend or fallback to extracted text
+  const displayText = useMemo(() => {
+    if (memory.previewText) return memory.previewText;
+    
+    if (truncateLength && memory.extractedText) {
+      const words = memory.extractedText.split(' ');
+      if (words.length <= truncateLength) return memory.extractedText;
+      return words.slice(0, truncateLength).join(' ') + '...';
+    }
+    
+    return memory.extractedText || memory.text || '';
+  }, [memory.previewText, memory.extractedText, memory.text, truncateLength]);
 
   // Author shape can be memory.author or memory.userId depending on endpoint
   const authorObj = memory.author || memory.userId || null;
   const myId = user?._id || user?.id;
   const authorId = authorObj?._id || authorObj?.id;
-  const showAuthor =
-    authorObj && authorObj.displayName && authorId && (!myId || authorId !== myId);
+  const showAuthor = authorObj && authorObj.displayName && authorId && (!myId || authorId !== myId);
   const isMine = Boolean(myId && authorId && myId === authorId);
-
-  // Truncate text if truncateLength is specified
-  const displayText = useMemo(() => {
-    if (!truncateLength || !memory.text) return memory.text;
-    const words = memory.text.split(' ');
-    if (words.length <= truncateLength) return memory.text;
-    return words.slice(0, truncateLength).join(' ') + '...';
-  }, [memory.text, truncateLength]);
 
   const displayDate = useMemo(() => {
     const d = memory.memoryDate || memory.createdAt;
@@ -51,69 +51,118 @@ function MemoryCard({ memory, onDelete, showReport = false, hideOwnerControls = 
     }
   };
 
+  // Content indicators
+  const contentMeta = useMemo(() => {
+    const indicators = [];
+    if (memory.hasImages) indicators.push({ icon: '📷', label: 'Has images' });
+    if (memory.hasChecklistItems) indicators.push({ icon: '✅', label: 'Has tasks' });
+    if (memory.hasMoodBlocks) indicators.push({ icon: '🎭', label: 'Mood tracker' });
+    if (memory.hasHeadings) indicators.push({ icon: '📝', label: 'Structured' });
+    return indicators;
+  }, [memory.hasImages, memory.hasChecklistItems, memory.hasMoodBlocks, memory.hasHeadings]);
+
   return (
     <>
       <motion.li
-        className={`p-4 bg-white rounded-lg shadow hover:shadow-lg transition relative list-none ${colorClass}`}
-        whileHover={{ scale: 1.02 }}
+        className="p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 relative list-none border-l-4 group"
+        style={{ borderLeftColor: memory.color || '#8B5CF6' }}
+        whileHover={{ scale: 1.01, y: -2 }}
       >
-        <Link to={`/memory/${memory._id}`}>
-          <p className="text-lg font-medium text-gray-700 line-clamp-3">{displayText}</p>
-          <p className={`text-sm mt-1 italic text-${memory.color || "purple-500"}`}>
-            {memory.emotion}
-          </p>
+        <Link to={`/memory/${memory._id}`} className="block">
+          <div className="mb-3">
+            <p className="text-gray-900 font-medium line-clamp-3 leading-relaxed">
+              {displayText}
+            </p>
+            {memory.emotion && (
+              <p className="text-sm mt-2 font-medium" style={{ color: memory.color || '#8B5CF6' }}>
+                {memory.emotion}
+              </p>
+            )}
+          </div>
+
+          {/* Content indicators */}
+          {contentMeta.length > 0 && (
+            <div className="flex gap-1 mb-2">
+              {contentMeta.map((meta, index) => (
+                <span 
+                  key={index}
+                  className="text-xs bg-gray-100 px-2 py-1 rounded-full"
+                  title={meta.label}
+                >
+                  {meta.icon}
+                </span>
+              ))}
+            </div>
+          )}
         </Link>
 
-        {/* Memory date chip */}
+        {/* Memory date */}
         {displayDate && (
-          <div className="mt-1 text-xs text-gray-500">{displayDate}</div>
+          <div className="text-xs text-gray-500 mb-2">{displayDate}</div>
         )}
 
+        {/* Author info */}
         {showAuthor && (
-          <div className="mt-2 text-sm text-gray-500">
-            👤{" "}
-            <Link to={`/user/${authorId}`} className="font-medium text-purple-700 hover:underline">
-              {authorObj.displayName}
+          <div className="text-sm text-gray-500 mb-2">
+            <Link to={`/user/${authorId}`} className="font-medium text-purple-600 hover:text-purple-800 transition-colors">
+              👤 {authorObj.displayName}
             </Link>
           </div>
         )}
 
-        <span
-          className={`absolute bottom-9 right-2 text-xs font-semibold ${
-            isPublic ? "text-green-600" : "text-yellow-600"
-          }`}
-        >
-          {isPublic ? "🌍 Public" : "🔒 Private"}
-        </span>
+        {/* Privacy badge */}
+        <div className="absolute top-3 right-3">
+          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+            isPublic ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+          }`}>
+            {isPublic ? "🌍 Public" : "🔒 Private"}
+          </span>
+        </div>
 
+        {/* Owner controls */}
         {isMine && !hideOwnerControls && (
-          <button
-            onClick={handleToggleVisibility}
-            className="absolute top-2 left-2 text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200"
-            title="Toggle visibility"
-          >
-            ✏️
-          </button>
+          <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={handleToggleVisibility}
+              className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors mr-2"
+              title="Toggle visibility"
+            >
+              {isPublic ? "Make Private" : "Make Public"}
+            </button>
+          </div>
         )}
 
+        {/* Delete button */}
         {onDelete && !hideOwnerControls && (
           <button
             onClick={() => onDelete(memory._id)}
-            className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-            title="Delete"
+            className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 p-1"
+            title="Delete memory"
           >
-            🗑️
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
           </button>
         )}
 
+        {/* Report button */}
         {showReport && !isMine && (
           <button
             onClick={() => setShowReportModal(true)}
-            className="absolute bottom-2 right-2 text-sm text-red-500 hover:underline"
+            className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-sm text-red-500 hover:text-red-700"
             title="Report memory"
           >
-            🚩 Report
+            🚩
           </button>
+        )}
+
+        {/* Content complexity indicator */}
+        {memory.contentComplexity > 0 && (
+          <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full font-medium">
+              Complexity: {memory.contentComplexity}
+            </div>
+          </div>
         )}
       </motion.li>
 
