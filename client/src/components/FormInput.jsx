@@ -1,4 +1,3 @@
-// src/components/FormInput.jsx
 import { useState } from "react";
 
 function FormInput({

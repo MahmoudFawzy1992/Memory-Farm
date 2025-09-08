@@ -1,4 +1,3 @@
-// src/components/AuthFormWrapper.jsx
 function AuthFormWrapper({ title, onSubmit, children, message = "" }) {
   return (
     <div className="max-w-sm mx-auto mt-20 px-4">

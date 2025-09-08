@@ -74,7 +74,7 @@ content: {
     emotionFamily: {
       type: String,
       enum: ['joy', 'sadness', 'anger', 'fear', 'surprise', 'calm', 'nostalgia', 'love'],
-      required: function() { return !!this.emotion; } // Required only if emotion is provided
+      required: false // Required only if emotion is provided
     },
     
     blockCount: {
@@ -108,8 +108,11 @@ memorySchema.index({ extractedText: 'text' }, { sparse: true });
 
 // Pre-save middleware to extract metadata
 memorySchema.pre('save', function(next) {
+  console.log('Pre-save middleware running...');
+  console.log('this.emotion:', this.emotion);
+  console.log('this.isModified("emotion"):', this.isModified('emotion'));
+  
   if (this.isModified('content')) {
-    // Extract text content for search
     this.extractedText = extractTextFromBlocks(this.content);
     this.blockCount = Array.isArray(this.content) ? this.content.length : 0;
     this.hasImages = hasImageBlocks(this.content);
@@ -117,10 +120,12 @@ memorySchema.pre('save', function(next) {
   }
   
   if (this.isModified('emotion')) {
-    // Set emotion family for analytics
-    this.emotionFamily = getEmotionFamilyKey(this.emotion);
+    const calculatedFamily = getEmotionFamilyKey(this.emotion);
+    console.log('Calculated emotion family:', calculatedFamily);
+    this.emotionFamily = calculatedFamily || 'joy';
   }
   
+  console.log('Final emotionFamily value:', this.emotionFamily);
   next();
 });
 
