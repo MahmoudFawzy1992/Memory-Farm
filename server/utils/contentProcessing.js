@@ -72,7 +72,7 @@ function getEmotionFamilyKey(emotionText) {
   }
   
   // This should never happen with strict validation
-  throw new Error(`Invalid emotion: ${cleanEmotion}. Only predefined emotions are allowed.`);
+  return null;
 }
 
 /**

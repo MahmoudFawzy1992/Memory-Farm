@@ -9,10 +9,12 @@ const emotionFamilies = {
       { label: "Excited", emoji: "🤩" },
       { label: "Enthusiastic", emoji: "😃" },
       { label: "Delighted", emoji: "😆" },
-      { label: "Elated", emoji: "🥳" },
+      { label: "Thrilled", emoji: "🤩" },
       { label: "Cheerful", emoji: "😁" },
+      { label: "Content", emoji: "😊" },
       { label: "Blissful", emoji: "😌" },
-      { label: "Euphoric", emoji: "🤪" }
+      { label: "Ecstatic", emoji: "🥳" },
+      { label: "Fine", emoji: "🙂" }
     ]
   },
   sadness: {
@@ -20,13 +22,14 @@ const emotionFamilies = {
     color: "#3B82F6",
     emotions: [
       { label: "Sad", emoji: "😢" },
-      { label: "Melancholy", emoji: "😔" },
+      { label: "Thoughtful", emoji: "🤔" },
       { label: "Sorrowful", emoji: "😞" },
       { label: "Heartbroken", emoji: "💔" },
       { label: "Grief", emoji: "😭" },
-      { label: "Dejected", emoji: "☹️" },
-      { label: "Despondent", emoji: "😦" },
-      { label: "Mournful", emoji: "😰" }
+      { label: "Disappointed", emoji: "😞" },
+      { label: "Hopeless", emoji: "😔" },
+      { label: "Grieving", emoji: "😢" },
+      { label: "Lonely", emoji: "😞" }
     ]
   },
   anger: {
@@ -40,7 +43,7 @@ const emotionFamilies = {
       { label: "Annoyed", emoji: "🙄" },
       { label: "Livid", emoji: "🤬" },
       { label: "Resentful", emoji: "😒" },
-      { label: "Indignant", emoji: "😤" }
+      { label: "Outraged", emoji: "😡" }
     ]
   },
   fear: {
@@ -54,7 +57,7 @@ const emotionFamilies = {
       { label: "Terrified", emoji: "😱" },
       { label: "Panicked", emoji: "😵" },
       { label: "Uneasy", emoji: "😓" },
-      { label: "Apprehensive", emoji: "😕" }
+      { label: "Cautious", emoji: "😬" }
     ]
   },
   surprise: {
@@ -77,12 +80,13 @@ const emotionFamilies = {
     emotions: [
       { label: "Calm", emoji: "😌" },
       { label: "Peaceful", emoji: "☮️" },
-      { label: "Serene", emoji: "🧘" },
       { label: "Relaxed", emoji: "😎" },
       { label: "Tranquil", emoji: "🕊️" },
       { label: "Zen", emoji: "🧘‍♂️" },
       { label: "Centered", emoji: "🙏" },
-      { label: "Balanced", emoji: "⚖️" }
+      { label: "Balanced", emoji: "⚖️" },
+      { label: "Tired", emoji: "😴" },
+      { label: "Bored", emoji: "😐" }
     ]
   },
   nostalgia: {
@@ -91,7 +95,7 @@ const emotionFamilies = {
     emotions: [
       { label: "Nostalgic", emoji: "🥺" },
       { label: "Wistful", emoji: "😌" },
-      { label: "Sentimental", emoji: "🥹" },
+      { label: "Sentimental", emoji: "🥺" },
       { label: "Reflective", emoji: "🤔" },
       { label: "Longing", emoji: "😔" },
       { label: "Yearning", emoji: "💭" },

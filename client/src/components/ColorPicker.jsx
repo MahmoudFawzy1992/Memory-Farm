@@ -9,6 +9,16 @@ const PRESET_COLORS = [
   '#EC4899', '#F43F5E', '#6B7280', '#374151', '#1F2937'
 ];
 
+// Utility: decide if foreground should be light or dark
+function getContrastColor(hex) {
+  if (!hex || hex.length < 7) return "#000"; 
+  const r = parseInt(hex.substr(1, 2), 16);
+  const g = parseInt(hex.substr(3, 2), 16);
+  const b = parseInt(hex.substr(5, 2), 16);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return brightness > 150 ? "#111" : "#fff"; // dark text for light bg, white for dark bg
+}
+
 export default function ColorSelect({ 
   color: value = '#8B5CF6', 
   setColor: onChange, 
@@ -18,6 +28,8 @@ export default function ColorSelect({
   const [isOpen, setIsOpen] = useState(false);
   const [selectedColor, setSelectedColor] = useState(value);
   const [customColor, setCustomColor] = useState(value);
+
+  const contrastColor = getContrastColor(selectedColor);
 
   useEffect(() => {
     setSelectedColor(value);
@@ -57,17 +69,30 @@ export default function ColorSelect({
         >
           <div className="flex items-center justify-between px-4 h-full">
             <div className="flex items-center gap-3">
+              {/* Color circle */}
               <div 
-                className="w-6 h-6 rounded-full border-2 border-white shadow-sm"
-                style={{ backgroundColor: selectedColor }}
+                className="w-6 h-6 rounded-full border-2 shadow-sm"
+                style={{ backgroundColor: selectedColor, borderColor: contrastColor }}
               />
-              <span className="text-sm font-medium text-white mix-blend-difference">
+              {/* Hex value */}
+              <span 
+                className="text-sm font-mono"
+                style={{ color: contrastColor }}
+              >
                 {selectedColor.toUpperCase()}
               </span>
             </div>
-            <svg className="w-5 h-5 text-white mix-blend-difference" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 3H5a2 2 0 00-2 2v12a4 4 0 004 4h2a2 2 0 002-2V5a2 2 0 00-2-2z" />
+            {/* Icon */}
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              viewBox="0 0 24 24" 
+              fill="currentColor" 
+              className="w-5 h-5"
+              style={{ color: contrastColor }}
+            >
+              <path d="M19.71 4.29a1 1 0 0 0-1.42 0l-2.12 2.12-1.17-1.17a2.5 2.5 0 0 0-3.54 0l-1.17 1.17-1.41-1.41-1.42 1.41 1.41 1.42-6.3 6.29a1 1 0 0 0-.29.71V20a2 2 0 0 0 2 2h4.24c.27 0 .52-.11.71-.29l6.29-6.3 1.42 1.41 1.41-1.41-1.41-1.42 1.17-1.17a2.5 2.5 0 0 0 0-3.54l-1.17-1.17 2.12-2.12a1 1 0 0 0 0-1.42zM8.41 18H6v-2.41l6.29-6.29 2.41 2.41L8.41 18z"/>
             </svg>
+
           </div>
         </button>
 
@@ -89,6 +114,7 @@ export default function ColorSelect({
                 <div className="grid grid-cols-10 gap-2">
                   {PRESET_COLORS.map((color) => (
                     <button
+                      type="button"
                       key={color}
                       onClick={() => handlePresetSelect(color)}
                       className={`w-8 h-8 rounded-lg border-2 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-purple-500 ${
@@ -133,6 +159,7 @@ export default function ColorSelect({
 
               <div className="flex justify-end mt-4 pt-4 border-t border-gray-100">
                 <button
+                  type="button"
                   onClick={() => setIsOpen(false)}
                   className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
                 >

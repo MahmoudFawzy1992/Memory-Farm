@@ -36,6 +36,7 @@ export default function EmotionDropdown({
                 
                 return (
                   <button
+                    type="button"
                     key={emotion.label}
                     onClick={() => onEmotionSelect(emotion)}
                     className={`w-full px-4 py-3 text-left hover:bg-purple-50 transition-colors duration-150 flex items-center gap-3 ${

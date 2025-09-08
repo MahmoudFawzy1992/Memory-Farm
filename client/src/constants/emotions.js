@@ -11,10 +11,12 @@ export const emotionFamilies = {
       { label: "Excited", emoji: "🤩" },
       { label: "Enthusiastic", emoji: "😃" },
       { label: "Delighted", emoji: "😆" },
-      { label: "Elated", emoji: "🥳" },
+      { label: "Thrilled", emoji: "🤩" },
       { label: "Cheerful", emoji: "😁" },
+      { label: "Content", emoji: "😊" },
       { label: "Blissful", emoji: "😌" },
-      { label: "Euphoric", emoji: "🤪" }
+      { label: "Ecstatic", emoji: "🥳" },
+      { label: "Fine", emoji: "🙂" }
     ]
   },
   sadness: {
@@ -22,13 +24,14 @@ export const emotionFamilies = {
     color: "#3B82F6",
     emotions: [
       { label: "Sad", emoji: "😢" },
-      { label: "Melancholy", emoji: "😔" },
+      { label: "Thoughtful", emoji: "🤔" },
       { label: "Sorrowful", emoji: "😞" },
       { label: "Heartbroken", emoji: "💔" },
       { label: "Grief", emoji: "😭" },
-      { label: "Dejected", emoji: "☹️" },
-      { label: "Despondent", emoji: "😦" },
-      { label: "Mournful", emoji: "😰" }
+      { label: "Disappointed", emoji: "😞" },
+      { label: "Hopeless", emoji: "😔" },
+      { label: "Grieving", emoji: "😢" },
+      { label: "Lonely", emoji: "😞" }
     ]
   },
   anger: {
@@ -42,7 +45,7 @@ export const emotionFamilies = {
       { label: "Annoyed", emoji: "🙄" },
       { label: "Livid", emoji: "🤬" },
       { label: "Resentful", emoji: "😒" },
-      { label: "Indignant", emoji: "😤" }
+      { label: "Outraged", emoji: "😡" }
     ]
   },
   fear: {
@@ -56,7 +59,7 @@ export const emotionFamilies = {
       { label: "Terrified", emoji: "😱" },
       { label: "Panicked", emoji: "😵" },
       { label: "Uneasy", emoji: "😓" },
-      { label: "Apprehensive", emoji: "😕" }
+      { label: "Cautious", emoji: "😬" }
     ]
   },
   surprise: {
@@ -79,12 +82,13 @@ export const emotionFamilies = {
     emotions: [
       { label: "Calm", emoji: "😌" },
       { label: "Peaceful", emoji: "☮️" },
-      { label: "Serene", emoji: "🧘" },
       { label: "Relaxed", emoji: "😎" },
       { label: "Tranquil", emoji: "🕊️" },
       { label: "Zen", emoji: "🧘‍♂️" },
       { label: "Centered", emoji: "🙏" },
-      { label: "Balanced", emoji: "⚖️" }
+      { label: "Balanced", emoji: "⚖️" },
+      { label: "Tired", emoji: "😴" },
+      { label: "Bored", emoji: "😐" }
     ]
   },
   nostalgia: {
@@ -93,7 +97,7 @@ export const emotionFamilies = {
     emotions: [
       { label: "Nostalgic", emoji: "🥺" },
       { label: "Wistful", emoji: "😌" },
-      { label: "Sentimental", emoji: "🥹" },
+      { label: "Sentimental", emoji: "🥺" },
       { label: "Reflective", emoji: "🤔" },
       { label: "Longing", emoji: "😔" },
       { label: "Yearning", emoji: "💭" },
@@ -135,12 +139,12 @@ export const getEmotionFamily = (emotionLabel) => {
     );
     if (found) return { key: familyKey, ...family };
   }
-  return { key: 'other', label: 'Other', color: '#6B7280' };
+  return null; // Strict validation - no fallback allowed
 };
 
 // Comprehensive synonym mappings for emotion search
 const emotionSynonyms = {
-  'Happy': ['glad', 'content', 'pleased', 'jovial', 'merry', 'upbeat', 'positive'],
+  'Happy': ['glad', 'pleased', 'jovial', 'merry', 'upbeat', 'positive'],
   'Joyful': ['jubilant', 'gleeful', 'ecstatic', 'thrilled', 'overjoyed'],
   'Excited': ['thrilled', 'pumped', 'hyped', 'eager', 'animated'],
   'Enthusiastic': ['passionate', 'zealous', 'spirited', 'energetic'],
@@ -148,16 +152,20 @@ const emotionSynonyms = {
   'Elated': ['exhilarated', 'euphoric', 'triumphant', 'high'],
   'Cheerful': ['bright', 'sunny', 'optimistic', 'buoyant'],
   'Blissful': ['serene', 'heavenly', 'divine', 'perfect'],
-  'Euphoric': ['ecstatic', 'rapturous', 'intoxicated', 'high'],
+  'Ecstatic': ['euphoric', 'rapturous', 'intoxicated', 'high'],
+  'Thrilled': ['excited', 'pumped', 'elated', 'overjoyed'],
+  'Content': ['satisfied', 'peaceful', 'fulfilled', 'serene'],
+  'Fine': ['okay', 'alright', 'decent', 'acceptable', 'average'],
   
   'Sad': ['unhappy', 'down', 'blue', 'depressed', 'gloomy', 'miserable'],
-  'Melancholy': ['pensive', 'brooding', 'contemplative', 'wistful'],
+  'Thoughtful': ['pensive', 'contemplative', 'reflective', 'meditative'],
   'Sorrowful': ['grieving', 'mournful', 'lamenting', 'aching'],
   'Heartbroken': ['devastated', 'crushed', 'shattered', 'broken'],
   'Grief': ['mourning', 'bereavement', 'loss', 'anguish'],
-  'Dejected': ['downcast', 'crestfallen', 'dispirited', 'discouraged'],
-  'Despondent': ['hopeless', 'despairing', 'desolate', 'forlorn'],
-  'Mournful': ['sorrowful', 'doleful', 'plaintive', 'elegiac'],
+  'Disappointed': ['let down', 'discouraged', 'disheartened', 'deflated'],
+  'Hopeless': ['despairing', 'despondent', 'desolate', 'forlorn'],
+  'Grieving': ['mourning', 'sorrowful', 'lamenting', 'bereaved'],
+  'Lonely': ['isolated', 'alone', 'solitary', 'abandoned'],
   
   'Angry': ['mad', 'furious', 'rage', 'irate', 'livid', 'heated'],
   'Furious': ['enraged', 'incensed', 'outraged', 'seething'],
@@ -166,7 +174,7 @@ const emotionSynonyms = {
   'Annoyed': ['irked', 'bothered', 'peeved', 'miffed'],
   'Livid': ['furious', 'enraged', 'seething', 'incandescent'],
   'Resentful': ['bitter', 'grudging', 'spiteful', 'vindictive'],
-  'Indignant': ['outraged', 'offended', 'affronted', 'insulted'],
+  'Outraged': ['indignant', 'offended', 'affronted', 'insulted'],
   
   'Afraid': ['scared', 'frightened', 'fearful', 'terrified'],
   'Anxious': ['worried', 'nervous', 'apprehensive', 'uneasy'],
@@ -175,7 +183,7 @@ const emotionSynonyms = {
   'Terrified': ['petrified', 'horrified', 'panic-stricken', 'terror'],
   'Panicked': ['frantic', 'hysterical', 'frenzied', 'alarmed'],
   'Uneasy': ['uncomfortable', 'unsettled', 'disturbed', 'restless'],
-  'Apprehensive': ['wary', 'cautious', 'hesitant', 'doubtful'],
+  'Cautious': ['wary', 'apprehensive', 'hesitant', 'careful'],
   
   'Surprised': ['astonished', 'amazed', 'shocked', 'startled'],
   'Amazed': ['astounded', 'stunned', 'flabbergasted', 'awestruck'],
@@ -210,7 +218,9 @@ const emotionSynonyms = {
   'Tender': ['gentle', 'soft', 'delicate', 'loving'],
   'Devoted': ['dedicated', 'loyal', 'faithful', 'committed'],
   'Passionate': ['intense', 'fervent', 'ardent', 'fiery'],
-  'Romantic': ['amorous', 'sentimental', 'dreamy', 'idealistic']
+  'Romantic': ['amorous', 'sentimental', 'dreamy', 'idealistic'],
+  'Tired': ['exhausted', 'weary', 'drained', 'sleepy', 'fatigued'],
+  'Bored': ['uninterested', 'restless', 'idle', 'uninspired']
 };
 
 // For search functionality with complete synonym mapping
