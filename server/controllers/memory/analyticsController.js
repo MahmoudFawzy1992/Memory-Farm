@@ -62,7 +62,7 @@ exports.getCalendarSummary = async (req, res) => {
   }
 };
 
-// Enhanced memories by date
+// FIXED: Enhanced memories by date with full memory data
 exports.getMemoriesByDate = async (req, res) => {
   try {
     const base = toDateOrNull(req.query.date);
@@ -80,15 +80,23 @@ exports.getMemoriesByDate = async (req, res) => {
         ],
       },
     })
-    .select('emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic')
+    .select('title content emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic createdAt updatedAt userId') // FIXED: Added title, content, userId
+    .populate('userId', 'displayName') // FIXED: Populate user data
     .sort({ createdAt: -1 });
 
-    // Add preview text for each memory
-    const enrichedMemories = memories.map(memory => ({
-      ...memory.toObject(),
-      previewText: memory.getPreviewText(100),
-      blockTypes: memory.getBlockTypes()
-    }));
+    // FIXED: Add preview text and metadata like other endpoints
+    const enrichedMemories = memories.map(memory => {
+      const obj = memory.toObject();
+      return {
+        ...obj,
+        previewText: memory.getPreviewText ? memory.getPreviewText(100) : obj.extractedText?.substring(0, 100) || 'No text content',
+        blockTypes: memory.getBlockTypes ? memory.getBlockTypes() : getBlockTypesFromContent(obj.content),
+        wordCount: obj.extractedText ? obj.extractedText.split(' ').length : 0,
+        hasChecklistItems: obj.content ? obj.content.some(b => b.type === 'checkListItem') : false,
+        hasHeadings: obj.content ? obj.content.some(b => b.type === 'heading') : false,
+        hasMoodBlocks: obj.content ? obj.content.some(b => b.type === 'mood') : false
+      };
+    });
 
     res.json({ date: fromUTC, memories: enrichedMemories });
   } catch (err) {
@@ -246,15 +254,20 @@ exports.searchMemories = async (req, res) => {
     }
 
     const memories = await Memory.find(query)
-      .select('emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic')
+      .select('title content emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic createdAt userId')
+      .populate('userId', 'displayName')
       .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
       .limit(50);
 
-    const results = memories.map(memory => ({
-      ...memory.toObject(),
-      previewText: memory.getPreviewText(150),
-      blockTypes: memory.getBlockTypes()
-    }));
+    const results = memories.map(memory => {
+      const obj = memory.toObject();
+      return {
+        ...obj,
+        previewText: memory.getPreviewText ? memory.getPreviewText(150) : obj.extractedText?.substring(0, 150) || 'No text content',
+        blockTypes: getBlockTypesFromContent(obj.content),
+        wordCount: obj.extractedText ? obj.extractedText.split(' ').length : 0
+      };
+    });
 
     res.json({ query: req.query, results, count: results.length });
   } catch (err) {
@@ -262,6 +275,12 @@ exports.searchMemories = async (req, res) => {
     res.status(500).json({ error: 'Memory search failed' });
   }
 };
+
+// Utility function to extract block types when instance method isn't available
+function getBlockTypesFromContent(content) {
+  if (!Array.isArray(content)) return [];
+  return [...new Set(content.map(block => block.type))];
+}
 
 module.exports = {
   getCalendarSummary: exports.getCalendarSummary,

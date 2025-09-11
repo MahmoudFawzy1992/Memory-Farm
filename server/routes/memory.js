@@ -67,14 +67,29 @@ router.post('/validate-emotion', validateEmotionInput, handleValidationErrors, a
   }
 });
 
-// Create memory with block content
+// FIXED: Create memory with block content and title support
 router.post('/', async (req, res) => {
   try {
-    // Validate using Zod schema
+    console.log('Received memory creation request:', {
+      title: req.body.title,
+      hasContent: !!req.body.content,
+      contentLength: req.body.content?.length,
+      emotion: req.body.emotion,
+      color: req.body.color
+    });
+
+    // Validate using Zod schema (now includes title)
     const validation = validateMemoryData(req.body, false);
     if (!validation.valid) {
+      console.log('Validation failed:', validation.errors);
       return res.status(400).json({ error: validation.errors.join(', ') });
     }
+
+    console.log('Validation passed, validated data:', {
+      title: validation.data.title,
+      hasContent: !!validation.data.content,
+      contentLength: validation.data.content?.length
+    });
 
     // Additional emotion validation with NLP
     if (req.body.emotion) {
@@ -84,11 +99,18 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // Create memory with validated data (includes title)
     const memory = await Memory.create({ 
       ...validation.data, 
       userId: req.user.id 
     });
     
+    console.log('Memory created successfully:', {
+      id: memory._id,
+      title: memory.title,
+      blockCount: memory.blockCount
+    });
+
     res.status(201).json(memory);
   } catch (error) {
     console.error('Memory creation error:', error);
@@ -112,10 +134,10 @@ router.get('/public/all', getPublicMemories);
 // Get single memory
 router.get('/:id', getMemoryById);
 
-// Update memory
+// FIXED: Update memory with title support
 router.put('/:id', async (req, res) => {
   try {
-    // Validate using Zod schema
+    // Validate using Zod schema (now includes title)
     const validation = validateMemoryData(req.body, true);
     if (!validation.valid) {
       return res.status(400).json({ error: validation.errors.join(', ') });

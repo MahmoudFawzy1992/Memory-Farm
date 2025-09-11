@@ -78,31 +78,37 @@ export default function Discover() {
   return (
     <PageWrapper>
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
-        {/* Header */}
-        <div className="bg-white shadow-sm border-b border-purple-100 sticky top-0 z-10">
+        {/* FIXED: Header with proper top spacing for navbar overlap */}
+        <div className="bg-white shadow-sm border-b border-purple-100 sticky z-10" style={{ top: '64px' }}>
           <div className="max-w-6xl mx-auto px-4 py-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-purple-700 mb-2">🌍 Discover</h1>
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-purple-700 mb-2 flex items-center gap-2">
+                  🌍 Discover
+                  <span className="text-lg bg-purple-100 text-purple-600 px-2 py-1 rounded-full text-sm font-medium">
+                    {filteredMemories.length}
+                  </span>
+                </h1>
                 <p className="text-gray-600">Explore public memories from the community</p>
               </div>
               
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">Filter by month:</span>
+              <div className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-xl">
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Filter by month:</span>
                 <DatePicker
                   selected={month}
                   onChange={setMonth}
                   dateFormat="MMMM yyyy"
                   showMonthYearPicker
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent min-w-0"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
-          {/* Charts Section - Stacked Vertically */}
+        {/* IMPROVED: Content with better spacing and layout */}
+        <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+          {/* Charts Section */}
           <DiscoverCharts
             distribution={distribution}
             trend={trend}
@@ -111,28 +117,41 @@ export default function Discover() {
             month={month}
           />
 
-          {/* Filter Bar */}
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h3 className="text-lg font-medium text-gray-800 mb-3">Filter by Emotion</h3>
-            <div className="flex gap-2 flex-wrap">
+          {/* IMPROVED: Emotion Filter Bar */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Filter by Emotion</h3>
+              <div className="text-sm text-gray-500">
+                {selectedEmotion !== "All" && (
+                  <button
+                    onClick={() => setSelectedEmotion("All")}
+                    className="text-purple-600 hover:text-purple-800 font-medium"
+                  >
+                    Clear filter
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 gap-3">
               {emotions.map(({ label, emoji }) => (
                 <button
                   key={label}
                   onClick={() => setSelectedEmotion(label)}
-                  className={`px-4 py-2 rounded-full border-2 text-sm font-medium transition-all duration-200 ${
+                  className={`p-3 rounded-xl border-2 text-sm font-medium transition-all duration-200 hover:scale-105 ${
                     selectedEmotion === label
-                      ? "bg-purple-600 text-white border-purple-600 shadow-lg transform scale-105"
+                      ? "bg-purple-600 text-white border-purple-600 shadow-lg"
                       : "bg-white text-gray-700 border-gray-200 hover:bg-purple-50 hover:border-purple-300"
                   }`}
                 >
-                  <span className="mr-1">{emoji}</span>
-                  {label}
+                  <div className="text-lg mb-1">{emoji}</div>
+                  <div className="text-xs leading-tight">{label}</div>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Memory List */}
+          {/* IMPROVED: Memory List */}
           <DiscoverMemoryList
             filteredMemories={filteredMemories}
             selectedEmotion={selectedEmotion}
