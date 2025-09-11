@@ -8,18 +8,33 @@ const {
 
 const memorySchema = new mongoose.Schema(
   {
-// Block-based content structure
-content: {
-  type: mongoose.Schema.Types.Mixed,
-  required: true,
-  validate: {
-    validator: function(value) {
-      return Array.isArray(value) && value.length > 0;
+    // NEW: Memory title field
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: [3, 'Title must be at least 3 characters long'],
+      maxlength: [100, 'Title cannot exceed 100 characters'],
+      validate: {
+        validator: function(value) {
+          return value && value.trim().length >= 3;
+        },
+        message: 'Title is required and must be at least 3 characters'
+      }
     },
-    message: 'Content must be an array with at least one block'
-  }
-},
-    
+
+    // Block-based content structure
+    content: {
+      type: mongoose.Schema.Types.Mixed,
+      required: true,
+      validate: {
+        validator: function(value) {
+          return Array.isArray(value) && value.length > 0;
+        },
+        message: 'Content must be an array with at least one block'
+      }
+    },
+        
     // Core metadata
     emotion: { 
       type: String, 
@@ -105,6 +120,7 @@ memorySchema.index({ userId: 1, isPublic: 1, memoryDate: -1 });
 memorySchema.index({ userId: 1, emotionFamily: 1, memoryDate: -1 });
 memorySchema.index({ isPublic: 1, emotionFamily: 1, memoryDate: -1 });
 memorySchema.index({ extractedText: 'text' }, { sparse: true });
+memorySchema.index({ title: 'text' }, { sparse: true }); // NEW: Title search index
 
 // Pre-save middleware to extract metadata
 memorySchema.pre('save', function(next) {

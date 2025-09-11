@@ -4,9 +4,10 @@ import FilterBar from '../components/FilterBar';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import PageWrapper from '../components/PageWrapper';
 import { useMemories } from '../hooks/useMemories';
-import { useDeleteMemory } from '../hooks/useDeleteMemory';
 import { emotions } from '../constants/emotions';
 import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { toast } from 'react-toastify';
+import axios from '../utils/axiosInstance';
 
 function Home() {
   const [selectedEmotion, setSelectedEmotion] = useState('All');
@@ -15,7 +16,7 @@ function Home() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedMemoryId, setSelectedMemoryId] = useState(null);
 
-  const { memories, loading } = useMemories();
+  const { memories, loading, setMemories } = useMemories();
 
   const filtered = useMemo(() => {
     let result = memories || [];
@@ -37,18 +38,28 @@ function Home() {
     return result;
   }, [memories, selectedEmotion, selectedMonth, hasUserSelectedMonth]);
 
-  const confirmDelete = useDeleteMemory({
-    selectedMemoryId,
-    memories,
-    setMemories: () => {}, // not used when filtering via useMemo
-    selectedEmotion,
-    setFiltered: () => {},
-    setShowDeleteModal,
-  });
-
-  const handleDeleteClick = (id) => {
-    setSelectedMemoryId(id);
+  // FIXED: Simplified delete functionality
+  const handleDeleteClick = (memoryId) => {
+    setSelectedMemoryId(memoryId);
     setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedMemoryId) return;
+    
+    try {
+      await axios.delete(`/memory/${selectedMemoryId}`);
+      
+      // Update local state to remove deleted memory
+      setMemories(prevMemories => prevMemories.filter(m => m._id !== selectedMemoryId));
+      
+      toast.success("Memory deleted successfully");
+      setShowDeleteModal(false);
+      setSelectedMemoryId(null);
+    } catch (err) {
+      console.error('Failed to delete memory:', err);
+      toast.error("Failed to delete memory");
+    }
   };
 
   const handleMonthChange = (newMonth) => {
@@ -109,7 +120,11 @@ function Home() {
             </div>
             <ul className="space-y-4">
               {filtered.map((m) => (
-                <MemoryCard key={m._id} memory={m} onDelete={handleDeleteClick} />
+                <MemoryCard 
+                  key={m._id} 
+                  memory={m} 
+                  onDelete={handleDeleteClick} 
+                />
               ))}
             </ul>
           </>

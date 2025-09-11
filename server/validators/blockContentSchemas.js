@@ -60,8 +60,12 @@ const BlockContentSchema = z.discriminatedUnion('type', [
 // Full memory content schema
 const MemoryContentSchema = z.array(BlockContentSchema).min(1, "Memory must have at least one block");
 
-// Memory creation/update schema
+// FIXED: Memory creation/update schema with title field
 const CreateMemorySchema = z.object({
+  title: z.string()
+    .min(3, "Title must be at least 3 characters long")
+    .max(100, "Title cannot exceed 100 characters")
+    .trim(),
   content: MemoryContentSchema,
   emotion: z.string().min(1).max(100).optional(),
   color: z.string().regex(/^#[0-9A-F]{6}$/i, "Color must be valid hex code"),
@@ -70,6 +74,11 @@ const CreateMemorySchema = z.object({
 });
 
 const UpdateMemorySchema = CreateMemorySchema.partial().extend({
+  title: z.string()
+    .min(3, "Title must be at least 3 characters long")
+    .max(100, "Title cannot exceed 100 characters")
+    .trim()
+    .optional(),
   content: MemoryContentSchema.optional()
 });
 

@@ -13,6 +13,117 @@ import {
   calculateContentStats 
 } from '../utils/NewMemoryValidation';
 
+// Enhanced block validation
+const validateBlocks = (blocks) => {
+  const errors = {};
+  
+  blocks.forEach((block, index) => {
+    const blockErrors = [];
+    
+    switch (block.type) {
+      case 'paragraph':
+        if (!block.content || !Array.isArray(block.content) || block.content.length === 0) {
+          blockErrors.push('Text block cannot be empty');
+        } else {
+          const text = block.content.map(item => typeof item === 'string' ? item : (item.text || '')).join('').trim();
+          if (!text) {
+            blockErrors.push('Text block cannot be empty');
+          }
+        }
+        break;
+        
+      case 'checkList':
+        if (!block.content || !Array.isArray(block.content) || block.content.length === 0) {
+          blockErrors.push('Todo list must have at least one item');
+        } else {
+          const hasValidItem = block.content.some(item => item.text && item.text.trim());
+          if (!hasValidItem) {
+            blockErrors.push('Todo list must have at least one non-empty item');
+          }
+        }
+        break;
+        
+      case 'image':
+        if (!block.props?.images || !Array.isArray(block.props.images) || block.props.images.length === 0) {
+          blockErrors.push('Image block must have at least one image');
+        }
+        break;
+        
+      case 'mood':
+        if (!block.props?.emotion) {
+          blockErrors.push('Mood block must have an emotion selected');
+        }
+        if (!block.props?.intensity || block.props.intensity < 1 || block.props.intensity > 10) {
+          blockErrors.push('Mood block must have intensity between 1-10');
+        }
+        break;
+        
+      case 'divider':
+        // Dividers are always valid
+        break;
+        
+      default:
+        blockErrors.push(`Unknown block type: ${block.type}`);
+    }
+    
+    if (blockErrors.length > 0) {
+      errors[`block_${index}`] = blockErrors.join(', ');
+    }
+  });
+  
+  return errors;
+};
+
+// Enhanced content stats calculation
+const calculateEnhancedContentStats = (title, blocks) => {
+  let totalChars = title.length;
+  let totalWords = title.trim() ? title.trim().split(/\s+/).length : 0;
+  
+  blocks.forEach(block => {
+    switch (block.type) {
+      case 'paragraph':
+        if (block.content && Array.isArray(block.content)) {
+          const text = block.content.map(item => typeof item === 'string' ? item : (item.text || '')).join(' ');
+          totalChars += text.length;
+          if (text.trim()) {
+            totalWords += text.trim().split(/\s+/).length;
+          }
+        }
+        break;
+        
+      case 'checkList':
+        if (block.content && Array.isArray(block.content)) {
+          block.content.forEach(item => {
+            if (item.text) {
+              totalChars += item.text.length;
+              totalWords += item.text.trim().split(/\s+/).length;
+            }
+          });
+        }
+        break;
+        
+      case 'mood':
+        if (block.props?.note) {
+          totalChars += block.props.note.length;
+          totalWords += block.props.note.trim().split(/\s+/).length;
+        }
+        break;
+        
+      // Images and dividers don't add to reading time
+    }
+  });
+  
+  // More accurate reading time calculation
+  // Average reading speed: 200-250 words per minute, we'll use 225
+  const readingTime = Math.max(1, Math.ceil(totalWords / 225));
+  
+  return { 
+    characters: totalChars, 
+    words: totalWords, 
+    readingTime
+  };
+};
+
 export default function NewMemory() {
   // Form state
   const [title, setTitle] = useState('');
@@ -38,7 +149,7 @@ export default function NewMemory() {
     }
   }, []);
 
-  // Handle block changes - ensure mood tracker is always present
+  // Handle block changes with validation
   const handleBlocksChange = useCallback((newBlocks) => {
     // Ensure at least one mood block exists
     const hasMoodBlock = newBlocks.some(block => block.type === 'mood');
@@ -49,7 +160,7 @@ export default function NewMemory() {
       setBlocks(newBlocks);
     }
     
-    // Clear block-related errors
+    // Clear previous block errors
     setErrors(prev => {
       const filtered = { ...prev };
       Object.keys(filtered).forEach(key => {
@@ -65,9 +176,16 @@ export default function NewMemory() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const validationErrors = validateMemoryForm(title, blocks, color, memoryDate);
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
+    // Validate form fields
+    const formErrors = validateMemoryForm(title, blocks, color, memoryDate);
+    
+    // Validate individual blocks
+    const blockErrors = validateBlocks(blocks);
+    
+    const allErrors = { ...formErrors, ...blockErrors };
+    
+    if (Object.keys(allErrors).length > 0) {
+      setErrors(allErrors);
       showNotification('Please fix the errors before creating your memory.', 'error');
       return;
     }
@@ -78,7 +196,9 @@ export default function NewMemory() {
     try {
       const emotion = getEmotionFromMoodBlocks(blocks);
       
+      // FIXED: Include title in memory data
       const memoryData = {
+        title: title.trim(), // NEW: Send title to backend
         content: blocks,
         emotion: emotion.trim(),
         color,
@@ -117,7 +237,8 @@ export default function NewMemory() {
     }
   };
 
-  const contentStats = calculateContentStats(title, blocks);
+  // FIXED: Enhanced content stats calculation
+  const contentStats = calculateEnhancedContentStats(title, blocks);
   const emotion = getEmotionFromMoodBlocks(blocks);
 
   return (

@@ -25,14 +25,17 @@ exports.signup = async (req, res) => {
     user.emailVerifyToken = token;
     await user.save();
 
-    const link = `https://sparkly-eclair-0244cb.netlify.app/verify-email?token=${token}&id=${user._id}`;
-    await sendEmail({
-      to: user.email,
-      subject: 'Verify Your Email',
-      html: `<p>Click to verify your email: <a href="${link}">${link}</a></p>`,
-    });
+const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
-    // ✅ Don't log the user in here — only respond
+const link = `${frontendUrl}/verify-email?token=${token}&id=${user._id}`;
+
+await sendEmail({
+  to: user.email,
+  subject: "Verify Your Email",
+  html: `<p>Click to verify your email: <a href="${link}">${link}</a></p>`,
+});
+
+// ✅ Don't log the user in here — only respond
     res.status(201).json({ message: "Signup successful. Please verify your email." });
   } catch (err) {
     console.error("Signup error:", err);

@@ -22,7 +22,8 @@ exports.getMyMemoriesPaginated = async (req, res) => {
     }
 
     const items = await Memory.find(base)
-      .select('content emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic createdAt updatedAt')
+      .select('title content emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic createdAt updatedAt userId') // FIXED: Added title and userId
+      .populate('userId', 'displayName') // FIXED: Populate user data for ownership
       .sort(sortStage)
       .limit(limit + 1);
 
@@ -74,8 +75,8 @@ exports.getPublicMemoriesPaginated = async (req, res) => {
     }
 
     const items = await Memory.find(base)
-      .populate('userId', 'displayName')
-      .select('content emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic createdAt updatedAt userId')
+      .populate('userId', 'displayName') // FIXED: Keep userId populated
+      .select('title content emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic createdAt updatedAt userId') // FIXED: Added title
       .sort(sortStage)
       .limit(limit + 1);
 
@@ -89,6 +90,7 @@ exports.getPublicMemoriesPaginated = async (req, res) => {
         wordCount: obj.extractedText ? obj.extractedText.split(' ').length : 0,
         hasChecklistItems: obj.content ? obj.content.some(b => b.type === 'checkListItem') : false,
         hasHeadings: obj.content ? obj.content.some(b => b.type === 'heading') : false,
+        hasMoodBlocks: obj.content ? obj.content.some(b => b.type === 'mood') : false,
         authorName: obj.userId?.displayName || 'Unknown User'
       };
     });

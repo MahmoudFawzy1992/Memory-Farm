@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import axios from "../utils/axiosInstance";
 import MemoryCard from "../components/MemoryCard";
+import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import { useAuth } from "../context/AuthContext";
+import { toast } from "react-toastify";
 import usePaginatedFetcher from "../hooks/usePaginatedFetcher";
 import useInfiniteScroll from "../hooks/useInfiniteScroll";
 
@@ -10,6 +12,13 @@ export default function Dashboard() {
   const [userData, setUserData] = useState(null);
   const [followStats, setFollowStats] = useState({ followers: 0, following: 0 });
   const [loading, setLoading] = useState(true);
+  
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedMemoryId, setSelectedMemoryId] = useState(null);
+  
+  // Local items state for deletion management
+  const [localItems, setLocalItems] = useState([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -49,10 +58,47 @@ export default function Dashboard() {
       `/memory/paginated${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
     []
   );
-  const { items, hasMore, loading: loadingMore, error, loadMore } = usePaginatedFetcher(buildUrl, {
+  
+  const { 
+    items, 
+    hasMore, 
+    loading: loadingMore, 
+    error, 
+    loadMore
+  } = usePaginatedFetcher(buildUrl, {
     pageSize: 12,
   });
+
+  // Update local items when fetcher items change
+  useEffect(() => {
+    setLocalItems(items);
+  }, [items]);
+  
   const sentinelRef = useInfiniteScroll(loadMore, { disabled: !hasMore || loadingMore });
+
+  // Delete functionality
+  const handleDeleteClick = (memoryId) => {
+    setSelectedMemoryId(memoryId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedMemoryId) return;
+    
+    try {
+      await axios.delete(`/memory/${selectedMemoryId}`);
+      
+      // Update local state to remove deleted memory
+      setLocalItems(prevItems => prevItems.filter(m => m._id !== selectedMemoryId));
+      
+      toast.success("Memory deleted successfully");
+      setShowDeleteModal(false);
+      setSelectedMemoryId(null);
+    } catch (err) {
+      console.error('Failed to delete memory:', err);
+      toast.error("Failed to delete memory");
+    }
+  };
 
   if (loading) {
     return <p className="text-center mt-10 text-purple-700">Loading profile...</p>;
@@ -87,13 +133,17 @@ export default function Dashboard() {
 
       {error && <p className="text-sm text-red-600 mb-2">Failed to load memories.</p>}
 
-      {items.length === 0 && !loadingMore ? (
+      {localItems.length === 0 && !loadingMore ? (
         <p className="text-gray-500">No memories yet.</p>
       ) : (
         <>
           <div className="space-y-4">
-            {items.map((memory) => (
-              <MemoryCard key={memory._id} memory={memory} />
+            {localItems.map((memory) => (
+              <MemoryCard 
+                key={memory._id} 
+                memory={memory} 
+                onDelete={handleDeleteClick}
+              />
             ))}
           </div>
 
@@ -115,6 +165,13 @@ export default function Dashboard() {
           </div>
         </>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }
