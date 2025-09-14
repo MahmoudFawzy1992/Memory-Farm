@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import RichTextToolbar from './RichTextToolbar';
 import TextBlockEditor from './TextBlockEditor';
 import { stripMarkdown } from '../../../utils/richTextUtils';
+import { sanitizeRichTextHTML } from '../../../utils/sanitization';
 
 export default function TextBlock({ 
   block, 
@@ -19,13 +20,36 @@ export default function TextBlock({
   const editorRef = useRef(null);
 
   const handleContentChange = (newContent) => {
-    setContent(newContent);
-    
+    // Sanitize HTML content before saving
+    const sanitizedContent = sanitizeRichTextHTML(newContent);
+    setContent(sanitizedContent);
+
+    // Extract textColor from editor content if present
+    let extractedTextColor = null;
+    try {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = sanitizedContent;
+      const spanWithColor = tempDiv.querySelector('span[style*="color"]');
+      if (spanWithColor) {
+        const style = spanWithColor.getAttribute('style');
+        const match = style.match(/color:\s*([^;]+)/);
+        if (match) {
+          extractedTextColor = match[1].trim();
+        }
+      }
+    } catch (e) {
+      // ignore errors
+    }
+
     const updatedBlock = {
       ...block,
-      content: [{ type: 'text', text: newContent }]
+      content: [{ type: 'text', text: sanitizedContent }],
+      props: {
+        ...block.props,
+        textColor: extractedTextColor || block.props?.textColor || '#000000'
+      }
     };
-    
+
     onChange(updatedBlock);
   };
 

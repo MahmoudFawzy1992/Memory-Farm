@@ -45,7 +45,7 @@ exports.getMemoryById = async (req, res) => {
   try {
     const memory = await Memory.findById(memoryId)
       .populate('userId', '_id displayName')
-      .select('content emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic createdAt updatedAt userId');
+      .select('title content emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic createdAt updatedAt userId');
 
     if (!memory) {
       return res.status(404).json({ error: 'Memory not found' });

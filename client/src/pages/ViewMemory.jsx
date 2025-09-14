@@ -2,25 +2,32 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import useMemoryViewer from "../hooks/useMemoryViewer";
+import axios from "../utils/axiosInstance";
+import { toast } from "react-toastify";
 
 import LoadingOrError from "../components/LoadingOrError";
 import MemoryNotFound from "../components/MemoryNotFound";
 import MemoryHeader from "../components/MemoryHeader";
 import MemoryDetails from "../components/MemoryDetails";
 import MemoryControls from "../components/MemoryControls";
+import MemorySidebar from "../components/MemorySidebar";
 import EditMemoryModal from "../components/EditMemoryModal";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import ReportModal from "../components/ReportModal";
 
-function ViewMemory() {
+export default function ViewMemory() {
   const { user } = useAuth();
   const [showReportModal, setShowReportModal] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const {
     memory,
+    memoryMetadata,
+    authorInfo,
     loading,
-    showModal,
-    setShowModal,
+    error,
+    showEditModal,
+    setShowEditModal,
     showDeleteConfirm,
     setShowDeleteConfirm,
     editedColor,
@@ -38,78 +45,159 @@ function ViewMemory() {
     handleDelete,
     handleUpdate,
     handleToggleVisibility,
-    isOwner,
+    goBack,
+    isOwner
   } = useMemoryViewer(user);
 
+  // Handle todo item updates
+  const handleBlockUpdate = async (updatedBlock) => {
+    if (!memory || !isOwner) return;
+
+    try {
+      // Update the content array with the updated block
+      const updatedContent = memory.content.map(block => 
+        block.id === updatedBlock.id ? updatedBlock : block
+      );
+
+      // Update backend immediately
+      await axios.put(`/memory/${memory._id}`, {
+        content: updatedContent
+      });
+
+      toast.success("Todo updated!");
+      
+      // Refresh the page to get updated stats
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+
+    } catch (error) {
+      console.error('Failed to update todo:', error);
+      toast.error("Failed to update todo");
+    }
+  };
+
+  const handleReport = () => {
+    setShowReportModal(true);
+  };
+
+  // Show loading/error states
+  if (loading) {
+    return <LoadingOrError loading={true} />;
+  }
+
+  if (error || !memory) {
+    return <MemoryNotFound />;
+  }
+
   return (
-    <>
-      <LoadingOrError loading={loading} memory={memory} />
-      {!loading && !memory && <MemoryNotFound />}
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile floating info button */}
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className="fixed bottom-6 right-6 lg:hidden z-30 w-14 h-14 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-colors flex items-center justify-center"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </button>
 
-      {!loading && memory && (
-        <motion.div
-          className={`bg-white shadow-lg rounded-lg p-6 mt-4 max-w-xl mx-auto relative border-t-4 border-${memory.color || "purple-500"}`}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-        >
-          <MemoryHeader memory={memory} user={user} />
-          <MemoryDetails memory={memory} />
+      {/* Main layout */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="lg:flex lg:gap-8">
+          {/* Main content */}
+          <div className="flex-1 min-w-0">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
+              style={{ 
+                borderTop: `4px solid ${memory.color || '#8B5CF6'}`
+              }}
+            >
+              <div className="p-6 lg:p-8">
+                {/* Memory header */}
+                <MemoryHeader
+                  memory={memory}
+                  memoryMetadata={memoryMetadata}
+                  authorInfo={authorInfo}
+                  onGoBack={goBack}
+                />
 
-          {isOwner && (
-            <MemoryControls
-              isPublic={memory.isPublic}
-              onEdit={() => setShowModal(true)}
-              onDelete={() => setShowDeleteConfirm(true)}
-              onToggleVisibility={handleToggleVisibility}
+                {/* Memory content */}
+                <MemoryDetails
+                  memory={memory}
+                  memoryMetadata={memoryMetadata}
+                  onBlockUpdate={handleBlockUpdate}
+                />
+
+                {/* Memory controls */}
+                <MemoryControls
+                  isOwner={isOwner}
+                  isPublic={memory.isPublic}
+                  onEdit={() => setShowEditModal(true)}
+                  onDelete={() => setShowDeleteConfirm(true)}
+                  onToggleVisibility={handleToggleVisibility}
+                  onReport={handleReport}
+                  showReportButton={!isOwner && user}
+                />
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Desktop sidebar */}
+          <div className="hidden lg:block">
+            <MemorySidebar
+              memory={memory}
+              memoryMetadata={memoryMetadata}
+              isOwner={isOwner}
+              isMobile={false}
             />
-          )}
+          </div>
+        </div>
+      </div>
 
-          {!isOwner && user && (
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => setShowReportModal(true)}
-                className="px-4 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
-              >
-                🚩 Report Memory
-              </button>
-            </div>
-          )}
+      {/* Mobile sidebar */}
+      <MemorySidebar
+        memory={memory}
+        memoryMetadata={memoryMetadata}
+        isOwner={isOwner}
+        isMobile={true}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-          <EditMemoryModal
-            show={showModal}
-            onClose={() => setShowModal(false)}
-            onUpdate={handleUpdate}
-            editedText={editedText}
-            setEditedText={setEditedText}
-            editedEmoji={editedEmoji}
-            setEditedEmoji={setEditedEmoji}
-            editedEmotionText={editedEmotionText}
-            setEditedEmotionText={setEditedEmotionText}
-            showPicker={showPicker}
-            setShowPicker={setShowPicker}
-            editedColor={editedColor}
-            setEditedColor={setEditedColor}
-            editedMemoryDate={editedMemoryDate}
-            setEditedMemoryDate={setEditedMemoryDate}
-          />
+      {/* Modals */}
+      <EditMemoryModal
+        show={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onUpdate={handleUpdate}
+        editedText={editedText}
+        setEditedText={setEditedText}
+        editedEmoji={editedEmoji}
+        setEditedEmoji={setEditedEmoji}
+        editedEmotionText={editedEmotionText}
+        setEditedEmotionText={setEditedEmotionText}
+        showPicker={showPicker}
+        setShowPicker={setShowPicker}
+        editedColor={editedColor}
+        setEditedColor={setEditedColor}
+        editedMemoryDate={editedMemoryDate}
+        setEditedMemoryDate={setEditedMemoryDate}
+      />
 
-          <ConfirmDeleteModal
-            isOpen={showDeleteConfirm}
-            onClose={() => setShowDeleteConfirm(false)}
-            onConfirm={handleDelete}
-          />
+      <ConfirmDeleteModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+      />
 
-          <ReportModal
-            isOpen={showReportModal}
-            onClose={() => setShowReportModal(false)}
-            targetType="memory"
-            targetId={memory?._id}
-          />
-        </motion.div>
-      )}
-    </>
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetType="memory"
+        targetId={memory?._id}
+      />
+    </div>
   );
 }
-
-export default ViewMemory;

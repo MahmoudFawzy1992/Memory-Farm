@@ -3,10 +3,11 @@ import { format } from "date-fns";
 
 // Block type icons for footer
 export const BLOCK_ICONS = {
-  paragraph: '📝', 
-  checkList: '✅', 
-  image: '🖼️', 
-  divider: '➖', 
+  paragraph: '📝',
+  text: '📝',
+  checkList: '✅',
+  image: '🖼️',
+  divider: '➖',
   heading: '📰'
 };
 
@@ -16,14 +17,20 @@ export const extractTitle = (memory) => {
     return memory.title.length > 60 ? memory.title.substring(0, 60) + '...' : memory.title;
   }
   // Fallback for legacy memories
-  const text = memory.previewText || memory.extractedText || '';
+  let text = memory.previewText || memory.extractedText || '';
+  // Strip HTML tags for title extraction
+  text = text.replace(/<[^>]*>/g, '').trim();
   const firstLine = text.split('\n')[0].trim();
   return firstLine.length > 60 ? firstLine.substring(0, 60) + '...' : firstLine || 'Untitled Memory';
 };
 
 // Extract content preview
 export const extractPreview = (memory, truncateLength) => {
-  const text = memory.previewText || memory.extractedText || '';
+  let text = memory.previewText || memory.extractedText || '';
+
+  // Strip HTML tags for preview text
+  text = text.replace(/<[^>]*>/g, '').trim();
+
   if (truncateLength && text.length > truncateLength * 6) {
     return text.substring(0, truncateLength * 6) + '...';
   }

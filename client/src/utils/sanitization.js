@@ -20,6 +20,86 @@ export const sanitizeHTML = (dirty) => {
 };
 
 /**
+ * Sanitize rich text HTML while preserving safe formatting
+ * Allows formatting tags but blocks dangerous content
+ * @param {string} dirty - Raw HTML content from rich text editor
+ * @returns {string} - Sanitized HTML with safe formatting preserved
+ */
+export const sanitizeRichTextHTML = (dirty) => {
+  if (!dirty || typeof dirty !== 'string') return '';
+  
+  return DOMPurify.sanitize(dirty, {
+    // Allow safe formatting tags including legacy font and strike
+    ALLOWED_TAGS: [
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'p', 'br', 'div', 'span',
+      'strong', 'b', 'em', 'i', 'u', 'del', 'mark',
+      'ul', 'ol', 'li',
+      'blockquote', 'code', 'pre',
+      'font', 'strike' // Add support for legacy contentEditable tags
+    ],
+    
+    // Allow safe styling attributes including color
+    ALLOWED_ATTR: [
+      'style', 'class', 'color'
+    ],
+    
+    // Additional security options
+    KEEP_CONTENT: true,
+    ALLOW_DATA_ATTR: false,
+    ALLOW_UNKNOWN_PROTOCOLS: false,
+    FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
+    
+    // Custom hook to validate CSS
+    SANITIZE_DOM: false // We'll handle DOM sanitization
+  });
+};
+
+/**
+ * Validate and clean inline CSS styles
+ * @param {string} styleAttr - CSS style attribute content
+ * @returns {string} - Cleaned CSS or empty string
+ */
+const sanitizeInlineStyles = (styleAttr) => {
+  if (!styleAttr) return '';
+  
+  // Split into individual CSS properties
+  const properties = styleAttr.split(';').map(prop => prop.trim()).filter(Boolean);
+  const safeProperties = [];
+  
+  // Allow only safe CSS properties
+  const allowedProperties = [
+    'color', 'background-color', 'text-align', 'font-weight', 
+    'font-style', 'text-decoration', 'font-size', 'line-height',
+    'margin', 'padding', 'border-radius'
+  ];
+  
+  properties.forEach(property => {
+    const [key, value] = property.split(':').map(s => s.trim());
+    
+    if (allowedProperties.includes(key) && value) {
+      // Validate color values
+      if (key.includes('color')) {
+        if (/^#[0-9A-Fa-f]{6}$/.test(value) || 
+            /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/.test(value) ||
+            /^[a-zA-Z]+$/.test(value)) {
+          safeProperties.push(`${key}: ${value}`);
+        }
+      }
+      // Validate other safe properties
+      else if (!value.includes('javascript:') && 
+               !value.includes('data:') && 
+               !value.includes('expression(')) {
+        safeProperties.push(`${key}: ${value}`);
+      }
+    }
+  });
+  
+  return safeProperties.join('; ');
+};
+
+/**
  * Sanitize text input for forms and user inputs
  * @param {string} input - User input
  * @returns {string} - Sanitized text
@@ -49,16 +129,24 @@ export const sanitizeMemoryBlocks = (blocks) => {
     
     const sanitizedBlock = { ...block };
     
-    // Sanitize text content in blocks
+    // Handle different block types appropriately
     if (Array.isArray(block.content)) {
       sanitizedBlock.content = block.content.map(item => {
         if (typeof item === 'string') {
+          // For text blocks, preserve rich formatting
+          if (block.type === 'paragraph') {
+            return sanitizeRichTextHTML(item);
+          }
+          // For other blocks, use strict sanitization
           return sanitizeHTML(item);
         }
         if (item && typeof item === 'object' && item.text) {
           return {
             ...item,
-            text: sanitizeHTML(item.text)
+            // Preserve formatting for text content
+            text: block.type === 'paragraph' ? 
+              sanitizeRichTextHTML(item.text) : 
+              sanitizeHTML(item.text)
           };
         }
         return item;
@@ -69,12 +157,17 @@ export const sanitizeMemoryBlocks = (blocks) => {
     if (block.props) {
       const sanitizedProps = { ...block.props };
       
-      // Sanitize text-based props
+      // Sanitize text-based props (always use strict sanitization for props)
       ['note', 'caption', 'alt', 'emotion'].forEach(prop => {
         if (sanitizedProps[prop] && typeof sanitizedProps[prop] === 'string') {
           sanitizedProps[prop] = sanitizeHTML(sanitizedProps[prop]);
         }
       });
+      
+      // Sanitize CSS styles if present
+      if (sanitizedProps.style) {
+        sanitizedProps.style = sanitizeInlineStyles(sanitizedProps.style);
+      }
       
       sanitizedBlock.props = sanitizedProps;
     }

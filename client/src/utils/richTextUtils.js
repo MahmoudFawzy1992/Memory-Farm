@@ -15,46 +15,105 @@ export const formatText = (text, format) => {
 
 export const parseMarkdown = (text) => {
   if (!text) return '';
-  
-  return text
-    // Headings (H1-H6)
-    .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mb-2 mt-4">$1</h3>')
-    .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mb-3 mt-4">$1</h2>')
-    .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mb-3 mt-4">$1</h1>')
-    .replace(/^#### (.*$)/gm, '<h4 class="text-base font-semibold mb-2 mt-3">$1</h4>')
-    .replace(/^##### (.*$)/gm, '<h5 class="text-sm font-semibold mb-2 mt-3">$1</h5>')
-    .replace(/^###### (.*$)/gm, '<h6 class="text-xs font-semibold mb-2 mt-3">$1</h6>')
-    
-    // Lists
-    .replace(/^\* (.+)$/gm, '<li class="ml-4">• $1</li>')
-    .replace(/^\d+\. (.+)$/gm, '<li class="ml-4">$1</li>')
-    
-    // Bold
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    
-    // Italic
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    
-    // Underline
-    .replace(/__(.*?)__/g, '<u>$1</u>')
-    
-    // Strikethrough
-    .replace(/~~(.*?)~~/g, '<del>$1</del>')
-    
-    // Code
-    .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 rounded text-sm font-mono">$1</code>')
-    
-    // Text colors
-    .replace(/\{color:(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|\w+)\}(.*?)\{\/color\}/g, '<span style="color:$1">$2</span>')
-    
-    // Background colors
-    .replace(/\{bg:(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|\w+)\}(.*?)\{\/bg\}/g, '<span style="background-color:$1; padding:2px 4px; border-radius:3px">$2</span>')
-    
-    // Links
-    .replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" class="text-purple-600 hover:underline" target="_blank">$1</a>')
-    
-    // Line breaks
-    .replace(/\n/g, '<br>');
+
+  // Split text into lines to handle block-level elements properly
+  const lines = text.split('\n');
+  let result = '';
+  let inList = false;
+  let listType = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+
+    // Handle headings (must be at start of line)
+    if (/^#{1,6} /.test(line)) {
+      if (inList) {
+        result += '</ul>';
+        inList = false;
+      }
+
+      const match = line.match(/^(#{1,6}) (.+)$/);
+      if (match) {
+        const level = match[1].length;
+        const content = match[2];
+        const classes = [
+          'text-xs font-semibold mb-2 mt-3', // h6
+          'text-sm font-semibold mb-2 mt-3', // h5
+          'text-base font-semibold mb-2 mt-3', // h4
+          'text-lg font-semibold mb-2 mt-4', // h3
+          'text-xl font-semibold mb-3 mt-4', // h2
+          'text-2xl font-bold mb-3 mt-4' // h1
+        ];
+        result += `<h${level} class="${classes[level-1]}">${content}</h${level}>`;
+        continue;
+      }
+    }
+
+    // Handle list items
+    const bulletMatch = line.match(/^(\s*)\* (.+)$/);
+    const numberMatch = line.match(/^(\s*)\d+\. (.+)$/);
+
+    if (bulletMatch || numberMatch) {
+      const indent = (bulletMatch ? bulletMatch[1] : numberMatch[1]).length;
+      const content = bulletMatch ? bulletMatch[2] : numberMatch[2];
+      const currentListType = bulletMatch ? 'ul' : 'ol';
+
+      if (!inList || listType !== currentListType || indent > 0) {
+        if (inList) result += `</${listType}>`;
+        result += `<${currentListType} class="list-disc pl-6 my-2">`;
+        inList = true;
+        listType = currentListType;
+      }
+
+      result += `<li class="my-1">${content}</li>`;
+      continue;
+    }
+
+    // If we were in a list but this line isn't a list item, close the list
+    if (inList && !line.trim()) {
+      result += `</${listType}>`;
+      inList = false;
+    }
+
+    // Handle regular paragraphs (non-empty lines that aren't headings or lists)
+    if (line.trim()) {
+      if (inList) {
+        result += `</${listType}>`;
+        inList = false;
+      }
+
+      // Process inline formatting within the paragraph
+      line = line
+        // Bold
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Italic
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        // Underline
+        .replace(/__(.*?)__/g, '<u>$1</u>')
+        // Strikethrough
+        .replace(/~~(.*?)~~/g, '<del>$1</del>')
+        // Code
+        .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 rounded text-sm font-mono">$1</code>')
+        // Text colors
+        .replace(/\{color:(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|\w+)\}(.*?)\{\/color\}/g, '<span style="color:$1">$2</span>')
+        // Background colors
+        .replace(/\{bg:(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|\w+)\}(.*?)\{\/bg\}/g, '<span style="background-color:$1; padding:2px 4px; border-radius:3px">$2</span>')
+        // Links
+        .replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" class="text-purple-600 hover:underline" target="_blank" rel="noopener noreferrer">$1</a>');
+
+      result += `<p class="mb-3 leading-relaxed">${line}</p>`;
+    } else if (!inList) {
+      // Empty line - add some spacing
+      result += '<br>';
+    }
+  }
+
+  // Close any open list
+  if (inList) {
+    result += `</${listType}>`;
+  }
+
+  return result;
 };
 
 export const stripMarkdown = (text) => {

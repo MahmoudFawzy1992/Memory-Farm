@@ -116,10 +116,7 @@ function MemoryCard({
           )}
         </div>
 
-        {/* Content Preview */}
-        <Link to={`/memory/${memory._id}`} className="block px-4 pb-3">
-          <p className="text-gray-700 text-sm leading-relaxed line-clamp-3">{displayText}</p>
-        </Link>
+        {/* Content Preview - Removed to show only block icons */}
 
         {/* Footer */}
         <div className="px-4 pb-4">

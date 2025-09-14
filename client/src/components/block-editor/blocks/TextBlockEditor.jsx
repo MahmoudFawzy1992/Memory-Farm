@@ -28,8 +28,8 @@ const TextBlockEditor = forwardRef(({
   useEffect(() => {
     if (editorRef.current && !content) {
       editorRef.current.innerHTML = `<p style="color: #9CA3AF; font-style: italic;">${placeholder}</p>`;
-    } else if (editorRef.current && content && editorRef.current.innerText !== content) {
-      editorRef.current.innerText = content;
+    } else if (editorRef.current && content && editorRef.current.innerHTML !== content) {
+      editorRef.current.innerHTML = content;
     }
   }, []);
 
@@ -68,7 +68,7 @@ const TextBlockEditor = forwardRef(({
   };
 
   const handleInput = (e) => {
-    const newContent = e.target.innerText || '';
+    const newContent = e.target.innerHTML || '';
     onChange(newContent);
   };
 
@@ -81,9 +81,9 @@ const TextBlockEditor = forwardRef(({
   const executeCommand = (command, value = null) => {
     editorRef.current.focus();
     document.execCommand(command, false, value);
-    
+
     setTimeout(() => {
-      const newContent = editorRef.current.innerText || '';
+      const newContent = editorRef.current.innerHTML || '';
       onChange(newContent);
     }, 10);
   };
@@ -210,7 +210,7 @@ const TextBlockEditor = forwardRef(({
       onFocus={handleFocus}
       onBlur={handleBlur}
       suppressContentEditableWarning={true}
-      className={`w-full p-4 bg-transparent focus:outline-none transition-all duration-200 rounded-lg border rich-text-editor ${
+      className={`w-full p-4 bg-transparent focus:outline-none transition-all duration-200 rounded-lg border rich-text-editor prose prose-sm max-w-none ${
         isFocused ? 'bg-gray-50 border-purple-200' : 'border-transparent hover:border-gray-200'
       }`}
       style={{

@@ -6,15 +6,27 @@ const DOMPurify = require('isomorphic-dompurify');
  */
 function sanitizeHTML(dirty) {
   if (!dirty || typeof dirty !== 'string') return '';
-  
-  // Strip ALL HTML tags and return plain text only
-  return DOMPurify.sanitize(dirty, { 
-    ALLOWED_TAGS: [], // No HTML tags allowed
-    ALLOWED_ATTR: [], // No attributes allowed
-    KEEP_CONTENT: true, // Keep text content
+
+  // Allow safe rich text HTML tags and attributes for memory content
+  return DOMPurify.sanitize(dirty, {
+    ALLOWED_TAGS: [
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'p', 'br', 'div', 'span',
+      'strong', 'b', 'em', 'i', 'u', 'del', 'mark',
+      'ul', 'ol', 'li',
+      'blockquote', 'code', 'pre',
+      'a'
+    ],
+    ALLOWED_ATTR: [
+      'style', 'class',
+      'href', 'target', 'rel'
+    ],
+    KEEP_CONTENT: true,
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false,
-    SANITIZE_DOM: true
+    SANITIZE_DOM: true,
+    FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onmouseenter', 'onmouseleave']
   }).trim();
 }
 
@@ -23,13 +35,13 @@ function sanitizeHTML(dirty) {
  */
 function sanitizeMemoryContent(content) {
   if (!Array.isArray(content)) return [];
-  
+
   return content.map(block => {
     if (!block || typeof block !== 'object') return block;
-    
+
     const sanitizedBlock = { ...block };
-    
-    // Sanitize text content in blocks
+
+    // Sanitize text content in blocks allowing rich text HTML
     if (Array.isArray(block.content)) {
       sanitizedBlock.content = block.content.map(item => {
         if (typeof item === 'string') {
@@ -44,21 +56,21 @@ function sanitizeMemoryContent(content) {
         return item;
       });
     }
-    
+
     // Sanitize block props that might contain user input
     if (block.props) {
       const sanitizedProps = { ...block.props };
-      
+
       // Sanitize text-based props
       ['note', 'caption', 'alt', 'emotion'].forEach(prop => {
         if (sanitizedProps[prop] && typeof sanitizedProps[prop] === 'string') {
           sanitizedProps[prop] = sanitizeHTML(sanitizedProps[prop]);
         }
       });
-      
+
       sanitizedBlock.props = sanitizedProps;
     }
-    
+
     return sanitizedBlock;
   });
 }
