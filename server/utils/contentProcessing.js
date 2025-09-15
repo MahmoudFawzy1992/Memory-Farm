@@ -35,11 +35,41 @@ function extractTextFromBlock(block) {
 }
 
 /**
- * Check if blocks contain image content
+ * FIXED: Enhanced image block detection and counting
  */
 function hasImageBlocks(blocks) {
   if (!Array.isArray(blocks)) return false;
-  return blocks.some(block => block.type === 'image');
+  return blocks.some(block => block.type === 'image' && block.props?.images?.length > 0);
+}
+
+/**
+ * FIXED: Count total images across all image blocks
+ */
+function countImagesInBlocks(blocks) {
+  if (!Array.isArray(blocks)) return 0;
+  
+  return blocks.reduce((total, block) => {
+    if (block.type === 'image' && block.props?.images) {
+      return total + block.props.images.length;
+    }
+    return total;
+  }, 0);
+}
+
+/**
+ * FIXED: Calculate total image size across all blocks
+ */
+function calculateImageSizeTotal(blocks) {
+  if (!Array.isArray(blocks)) return 0;
+  
+  return blocks.reduce((total, block) => {
+    if (block.type === 'image' && block.props?.images) {
+      return total + block.props.images.reduce((blockTotal, image) => {
+        return blockTotal + (image.size || 0);
+      }, 0);
+    }
+    return total;
+  }, 0);
 }
 
 /**
@@ -71,12 +101,11 @@ function getEmotionFamilyKey(emotionText) {
     if (found) return familyKey;
   }
   
-  // This should never happen with strict validation
   return null;
 }
 
 /**
- * Calculate content complexity score for analytics
+ * FIXED: Enhanced content complexity calculation with image support
  */
 function calculateContentComplexity(blocks) {
   if (!Array.isArray(blocks)) return 0;
@@ -88,35 +117,72 @@ function calculateContentComplexity(blocks) {
     'bulletListItem': 0.8,
     'numberedListItem': 0.8,
     'checkListItem': 1.2, // Higher weight for tasks
-    'image': 1.5,
-    'mood': 2 // Highest weight for mood blocks
+    'checkList': 1.2, // Fixed naming
+    'image': 2.5, // Higher weight for images (multimedia content)
+    'mood': 2, // High weight for mood blocks
+    'divider': 0.3 // Lower weight for dividers
   };
   
   blocks.forEach(block => {
     const weight = weights[block.type] || 1;
-    const contentLength = extractTextFromBlock(block).length;
-    score += weight + (contentLength / 100); // Base weight + content factor
+    let contentFactor = 0;
+    
+    // Calculate content factor based on block type
+    switch (block.type) {
+      case 'paragraph':
+      case 'checkList':
+        contentFactor = extractTextFromBlock(block).length / 100;
+        break;
+      case 'image':
+        // Factor in number of images and their metadata
+        if (block.props?.images) {
+          contentFactor = block.props.images.length * 2; // 2 points per image
+          // Add points for captions and alt text
+          block.props.images.forEach(image => {
+            if (image.caption) contentFactor += 0.5;
+            if (image.alt) contentFactor += 0.3;
+          });
+        }
+        break;
+      case 'mood':
+        contentFactor = 1; // Base complexity for mood
+        if (block.props?.note) {
+          contentFactor += block.props.note.length / 50;
+        }
+        break;
+      default:
+        contentFactor = extractTextFromBlock(block).length / 100;
+    }
+    
+    score += weight + contentFactor;
   });
   
   return Math.round(score * 10) / 10; // Round to 1 decimal
 }
 
 /**
- * Get memory summary for notifications and previews
+ * FIXED: Enhanced memory summary with image indicators
  */
 function getMemorySummary(blocks, maxLength = 100) {
   const text = extractTextFromBlocks(blocks);
   const moodBlocks = extractMoodBlocks(blocks);
   const hasImages = hasImageBlocks(blocks);
+  const imageCount = countImagesInBlocks(blocks);
   
   let summary = text.substring(0, maxLength);
   if (text.length > maxLength) summary += '...';
   
   // Add metadata hints
   const hints = [];
-  if (hasImages) hints.push('📷');
+  if (hasImages) {
+    if (imageCount === 1) {
+      hints.push('📷');
+    } else {
+      hints.push(`📷×${imageCount}`);
+    }
+  }
   if (moodBlocks.length > 0) hints.push('🎭');
-  if (blocks.some(b => b.type === 'checkListItem')) hints.push('✅');
+  if (blocks.some(b => b.type === 'checkList')) hints.push('✅');
   
   return hints.length > 0 ? `${hints.join(' ')} ${summary}` : summary;
 }
@@ -162,19 +228,27 @@ function validateBlockOrder(blocks) {
 }
 
 /**
- * Process uploaded images for memory blocks
+ * FIXED: Enhanced image block processing
  */
 function processImageBlock(imageData) {
-  // This will be enhanced when we add image upload functionality
+  if (!imageData.images || !Array.isArray(imageData.images)) {
+    throw new Error('Image block must contain images array');
+  }
+  
   return {
     id: imageData.id || generateBlockId(),
     type: 'image',
     props: {
-      url: imageData.url,
-      alt: imageData.alt || '',
-      caption: imageData.caption || '',
-      width: imageData.width || null,
-      previewUrl: imageData.previewUrl || imageData.url
+      images: imageData.images.map(image => ({
+        id: image.id || `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        url: image.url,
+        name: image.name || 'untitled',
+        alt: image.alt || '',
+        caption: image.caption || '',
+        size: image.size || 0,
+        type: image.type || 'image/jpeg',
+        uploadedAt: image.uploadedAt || new Date().toISOString()
+      }))
     },
     content: []
   };
@@ -188,16 +262,29 @@ function generateBlockId() {
 }
 
 /**
- * Validate block structure for drag and drop operations
+ * FIXED: Enhanced block structure validation with image support
  */
 function validateBlockStructure(block) {
   if (!block.id || !block.type) {
     return { valid: false, error: 'Block must have id and type' };
   }
   
-  const validTypes = ['paragraph', 'heading', 'bulletListItem', 'numberedListItem', 'checkListItem', 'image', 'mood'];
+  const validTypes = ['paragraph', 'heading', 'bulletListItem', 'numberedListItem', 'checkListItem', 'checkList', 'image', 'mood', 'divider'];
   if (!validTypes.includes(block.type)) {
     return { valid: false, error: `Invalid block type: ${block.type}` };
+  }
+  
+  // Additional validation for image blocks
+  if (block.type === 'image') {
+    if (!block.props?.images || !Array.isArray(block.props.images) || block.props.images.length === 0) {
+      return { valid: false, error: 'Image block must contain at least one image' };
+    }
+    
+    for (const image of block.props.images) {
+      if (!image.url || !image.url.startsWith('data:image/')) {
+        return { valid: false, error: 'Image must have valid data URL' };
+      }
+    }
   }
   
   return { valid: true };
@@ -206,6 +293,8 @@ function validateBlockStructure(block) {
 module.exports = {
   extractTextFromBlocks,
   hasImageBlocks,
+  countImagesInBlocks,
+  calculateImageSizeTotal,
   extractMoodBlocks,
   getEmotionFamilyKey,
   calculateContentComplexity,

@@ -4,6 +4,19 @@ import ColorPickerDropdown from './ColorPickerDropdown';
 import HeadingSelector from './HeadingSelector';
 import { TEXT_COLORS } from '../../../utils/richTextUtils';
 
+// Background colors with transparent option for removal
+const BACKGROUND_COLORS = [
+  { name: 'Remove Background', value: 'transparent', color: '#ffffff', border: true },
+  { name: 'Light Gray', value: '#F3F4F6', color: '#F3F4F6' },
+  { name: 'Light Red', value: '#FEF2F2', color: '#FEF2F2' },
+  { name: 'Light Orange', value: '#FFF7ED', color: '#FFF7ED' },
+  { name: 'Light Yellow', value: '#FEFCE8', color: '#FEFCE8' },
+  { name: 'Light Green', value: '#F0FDF4', color: '#F0FDF4' },
+  { name: 'Light Blue', value: '#EFF6FF', color: '#EFF6FF' },
+  { name: 'Light Purple', value: '#F5F3FF', color: '#F5F3FF' },
+  { name: 'Light Pink', value: '#FDF2F8', color: '#FDF2F8' }
+];
+
 export default function RichTextToolbar({ 
   onFormat, 
   activeFormats = {},
@@ -110,7 +123,7 @@ export default function RichTextToolbar({
       />
 
       <ColorPickerDropdown
-        colors={TEXT_COLORS}
+        colors={BACKGROUND_COLORS}
         onSelect={handleBackgroundColorSelect}
         isOpen={openDropdown === 'backgroundColor'}
         onToggle={(isOpen) => handleDropdownToggle('backgroundColor', isOpen)}
@@ -164,6 +177,31 @@ export default function RichTextToolbar({
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M8 12h8m-8 6h16" />
+        </svg>
+      </button>
+
+      {/* Undo/Redo buttons */}
+      <div className="w-px h-6 bg-gray-200" />
+      
+      <button
+        type="button"
+        onClick={() => document.execCommand('undo')}
+        className="w-8 h-8 rounded-md flex items-center justify-center text-gray-600 hover:bg-gray-100"
+        title="Undo (Ctrl+Z)"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+        </svg>
+      </button>
+      
+      <button
+        type="button"
+        onClick={() => document.execCommand('redo')}
+        className="w-8 h-8 rounded-md flex items-center justify-center text-gray-600 hover:bg-gray-100"
+        title="Redo (Ctrl+Y)"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6" />
         </svg>
       </button>
     </motion.div>

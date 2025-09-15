@@ -19,6 +19,18 @@ export default function TextBlock({
   
   const editorRef = useRef(null);
 
+  // Extract pure text from HTML content for character counting
+  const extractPlainText = (htmlContent) => {
+    if (!htmlContent) return '';
+    
+    // Create a temporary div to parse HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    
+    // Get only the text content, which strips all HTML tags
+    return tempDiv.textContent || tempDiv.innerText || '';
+  };
+
   const handleContentChange = (newContent) => {
     // Sanitize HTML content before saving
     const sanitizedContent = sanitizeRichTextHTML(newContent);
@@ -29,9 +41,9 @@ export default function TextBlock({
     try {
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = sanitizedContent;
-      const spanWithColor = tempDiv.querySelector('span[style*="color"]');
-      if (spanWithColor) {
-        const style = spanWithColor.getAttribute('style');
+      const elementWithColor = tempDiv.querySelector('[style*="color"]');
+      if (elementWithColor) {
+        const style = elementWithColor.getAttribute('style');
         const match = style.match(/color:\s*([^;]+)/);
         if (match) {
           extractedTextColor = match[1].trim();
@@ -83,7 +95,9 @@ export default function TextBlock({
     return block.props?.textColor || '#000000';
   };
 
-  const plainTextLength = stripMarkdown(content).length;
+  // Get pure text length for character counting (no HTML tags)
+  const plainText = extractPlainText(content);
+  const plainTextLength = plainText.length;
 
   return (
     <div className="w-full">
@@ -110,7 +124,7 @@ export default function TextBlock({
         textColor={getTextColor()}
       />
 
-      {/* Character count */}
+      {/* Character count - shows only plain text characters */}
       {plainTextLength > 50 && (
         <motion.div
           initial={{ opacity: 0 }}

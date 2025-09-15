@@ -1,31 +1,26 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sanitizeTextInput } from '../../../utils/sanitization';
 
-// Allowed file types with strict validation
 const ALLOWED_FILE_TYPES = {
-  'image/jpeg': { extensions: ['jpg', 'jpeg'], maxSize: 1024 * 1024 }, // 1MB
-  'image/png': { extensions: ['png'], maxSize: 1024 * 1024 }, // 1MB
-  'image/webp': { extensions: ['webp'], maxSize: 1024 * 1024 }, // 1MB
-  'image/gif': { extensions: ['gif'], maxSize: 1024 * 1024 }, // 1MB
+  'image/jpeg': { extensions: ['jpg', 'jpeg'], maxSize: 1024 * 1024 },
+  'image/png': { extensions: ['png'], maxSize: 1024 * 1024 },
+  'image/webp': { extensions: ['webp'], maxSize: 1024 * 1024 },
+  'image/gif': { extensions: ['gif'], maxSize: 1024 * 1024 },
 };
 
-// File validation function
 const validateImageFile = (file) => {
   const errors = [];
   
-  // Check file type
   if (!ALLOWED_FILE_TYPES[file.type]) {
     errors.push(`File type ${file.type} is not allowed. Use JPG, PNG, WebP, or GIF.`);
   }
   
-  // Check file size
   const config = ALLOWED_FILE_TYPES[file.type];
   if (config && file.size > config.maxSize) {
     errors.push(`File size (${Math.round(file.size / 1024)}KB) exceeds limit (${Math.round(config.maxSize / 1024)}KB)`);
   }
   
-  // Check file extension
   const fileName = file.name.toLowerCase();
   const fileExt = fileName.split('.').pop();
   
@@ -33,37 +28,89 @@ const validateImageFile = (file) => {
     errors.push(`File extension .${fileExt} doesn't match file type`);
   }
   
-  // Basic filename validation
   if (fileName.length > 255) {
     errors.push('Filename is too long');
   }
   
-  // Check for suspicious filenames
   const suspiciousPatterns = [
-    /\.php\./i, /\.asp\./i, /\.jsp\./i, /\.exe\./i, // Server scripts
-    /script/i, /javascript/i, /vbscript/i, // Script keywords
-    /<script/i, /javascript:/i // HTML/JS injection
+    /\.php\./i, /\.asp\./i, /\.jsp\./i, /\.exe\./i,
+    /script/i, /javascript/i, /vbscript/i,
+    /<script/i, /javascript:/i
   ];
   
   if (suspiciousPatterns.some(pattern => pattern.test(fileName))) {
     errors.push('Filename contains suspicious content');
   }
   
-  return {
-    valid: errors.length === 0,
-    errors
-  };
+  return { valid: errors.length === 0, errors };
 };
 
-export default function ImageBlock({ 
-  block, 
-  onChange 
-}) {
-  const [images, setImages] = useState(block.props?.images || []);
+export default function ImageBlock({ block, onChange }) {
+  const [localImages, setLocalImages] = useState([]);
   const [dragOver, setDragOver] = useState(false);
   const [uploadErrors, setUploadErrors] = useState([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Initialize local state from block props
+  useEffect(() => {
+    const blockImages = block.props?.images || [];
+    setLocalImages(blockImages);
+  }, []);
+
+  // FIXED: Debounced update to prevent setState during render
+  const debouncedUpdateBlock = useCallback((images) => {
+    const timeoutId = setTimeout(() => {
+      const updatedBlock = {
+        ...block,
+        props: { ...block.props, images }
+      };
+      onChange(updatedBlock);
+    }, 100); // 100ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [block, onChange]);
+
+  // Update block when local images change
+  useEffect(() => {
+    const cleanup = debouncedUpdateBlock(localImages);
+    return cleanup;
+  }, [localImages, debouncedUpdateBlock]);
+
+  const processFileToImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const result = e.target.result;
+          
+          if (!result || !result.startsWith('data:image/')) {
+            reject(new Error('Invalid image data'));
+            return;
+          }
+          
+          const newImage = {
+            id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            url: result,
+            name: sanitizeTextInput(file.name),
+            alt: '',
+            caption: '',
+            size: file.size,
+            type: file.type,
+            uploadedAt: new Date().toISOString()
+          };
+          
+          resolve(newImage);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
 
   const handleFileSelect = async (files) => {
     setUploadErrors([]);
@@ -72,7 +119,7 @@ export default function ImageBlock({
     const validFiles = [];
     const errors = [];
     
-    // Validate each file
+    // Validate files
     Array.from(files).forEach((file, index) => {
       const validation = validateImageFile(file);
       if (validation.valid) {
@@ -87,60 +134,19 @@ export default function ImageBlock({
     }
     
     // Process valid files
+    const processedImages = [];
     for (const file of validFiles) {
       try {
-        const reader = new FileReader();
-        
-        await new Promise((resolve, reject) => {
-          reader.onload = (e) => {
-            try {
-              const result = e.target.result;
-              
-              // Additional validation of the data URL
-              if (!result || !result.startsWith('data:image/')) {
-                reject(new Error('Invalid image data'));
-                return;
-              }
-              
-              // Create sanitized image object
-              const newImage = {
-                id: Date.now() + Math.random(),
-                url: result,
-                name: sanitizeTextInput(file.name),
-                size: file.size,
-                type: file.type,
-                uploadedAt: new Date().toISOString()
-              };
-              
-              setImages(prev => {
-                const updated = [...prev, newImage];
-                
-                // Update block with new images
-                const updatedBlock = {
-                  ...block,
-                  props: { ...block.props, images: updated }
-                };
-                onChange(updatedBlock);
-                
-                return updated;
-              });
-              
-              resolve();
-            } catch (err) {
-              reject(err);
-            }
-          };
-          
-          reader.onerror = () => reject(new Error('Failed to read file'));
-          reader.readAsDataURL(file);
-        });
-        
+        const imageData = await processFileToImage(file);
+        processedImages.push(imageData);
       } catch (error) {
         console.error('File processing error:', error);
         setUploadErrors(prev => [...prev, `Failed to process ${file.name}: ${error.message}`]);
       }
     }
     
+    // Update local state with new images
+    setLocalImages(prev => [...prev, ...processedImages]);
     setUploading(false);
   };
 
@@ -148,7 +154,6 @@ export default function ImageBlock({
     if (e.target.files?.length > 0) {
       handleFileSelect(e.target.files);
     }
-    // Clear input to allow same file selection
     e.target.value = '';
   };
 
@@ -172,29 +177,16 @@ export default function ImageBlock({
   };
 
   const removeImage = (imageId) => {
-    const updatedImages = images.filter(img => img.id !== imageId);
-    setImages(updatedImages);
-    
-    const updatedBlock = {
-      ...block,
-      props: { ...block.props, images: updatedImages }
-    };
-    onChange(updatedBlock);
+    setLocalImages(prev => prev.filter(img => img.id !== imageId));
   };
 
   const updateImageMetadata = (imageId, field, value) => {
     const sanitizedValue = sanitizeTextInput(value);
-    const updatedImages = images.map(img => 
-      img.id === imageId ? { ...img, [field]: sanitizedValue } : img
+    setLocalImages(prev => 
+      prev.map(img => 
+        img.id === imageId ? { ...img, [field]: sanitizedValue } : img
+      )
     );
-    
-    setImages(updatedImages);
-    
-    const updatedBlock = {
-      ...block,
-      props: { ...block.props, images: updatedImages }
-    };
-    onChange(updatedBlock);
   };
 
   const formatFileSize = (bytes) => {
@@ -207,7 +199,6 @@ export default function ImageBlock({
 
   return (
     <div className="w-full p-4">
-      {/* Upload Area */}
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -227,7 +218,7 @@ export default function ImageBlock({
         <p className="text-gray-600 font-medium mb-2">
           {uploading
             ? 'Processing images...'
-            : images.length === 0 
+            : localImages.length === 0 
             ? 'Add images to your memory' 
             : 'Add more images'
           }
@@ -254,7 +245,6 @@ export default function ImageBlock({
         />
       </div>
 
-      {/* Upload Errors */}
       {uploadErrors.length > 0 && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <h4 className="text-red-800 font-medium mb-2">Upload Errors:</h4>
@@ -272,11 +262,10 @@ export default function ImageBlock({
         </div>
       )}
 
-      {/* Image Preview Grid */}
-      {images.length > 0 && (
+      {localImages.length > 0 && (
         <div className="mt-4 space-y-4">
           <AnimatePresence>
-            {images.map((image) => (
+            {localImages.map((image) => (
               <motion.div
                 key={image.id}
                 layout
@@ -286,7 +275,6 @@ export default function ImageBlock({
                 className="bg-gray-50 rounded-lg p-4 border border-gray-200"
               >
                 <div className="flex gap-4">
-                  {/* Image Preview */}
                   <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                     <img
                       src={image.url}
@@ -303,7 +291,6 @@ export default function ImageBlock({
                       Failed to load
                     </div>
                     
-                    {/* Remove button */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -318,7 +305,6 @@ export default function ImageBlock({
                     </button>
                   </div>
                   
-                  {/* Image Metadata */}
                   <div className="flex-1 space-y-2">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -348,7 +334,6 @@ export default function ImageBlock({
                       />
                     </div>
                     
-                    {/* File Info */}
                     <div className="text-xs text-gray-500 flex gap-4">
                       <span>{formatFileSize(image.size)}</span>
                       <span>{image.type}</span>
@@ -364,11 +349,10 @@ export default function ImageBlock({
         </div>
       )}
 
-      {/* Image count indicator */}
-      {images.length > 0 && (
+      {localImages.length > 0 && (
         <div className="mt-3 text-sm text-gray-500 text-center">
-          {images.length} {images.length === 1 ? 'image' : 'images'} added
-          {images.length >= 5 && (
+          {localImages.length} {localImages.length === 1 ? 'image' : 'images'} added
+          {localImages.length >= 5 && (
             <span className="text-amber-600 ml-2">
               (Consider keeping it under 5 images for better performance)
             </span>

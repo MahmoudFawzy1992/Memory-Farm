@@ -9,9 +9,9 @@ import NewMemoryLayout from '../components/NewMemoryLayout';
 import MemoryFormActions from '../components/new-memory/MemoryFormActions';
 import { 
   validateMemoryForm, 
-  getEmotionFromMoodBlocks, 
-  calculateContentStats 
+  getEmotionFromMoodBlocks
 } from '../utils/NewMemoryValidation';
+import { calculatePureTextStats } from '../utils/textUtils';
 
 // Enhanced block validation
 const validateBlocks = (blocks) => {
@@ -72,56 +72,6 @@ const validateBlocks = (blocks) => {
   });
   
   return errors;
-};
-
-// Enhanced content stats calculation
-const calculateEnhancedContentStats = (title, blocks) => {
-  let totalChars = title.length;
-  let totalWords = title.trim() ? title.trim().split(/\s+/).length : 0;
-  
-  blocks.forEach(block => {
-    switch (block.type) {
-      case 'paragraph':
-        if (block.content && Array.isArray(block.content)) {
-          const text = block.content.map(item => typeof item === 'string' ? item : (item.text || '')).join(' ');
-          totalChars += text.length;
-          if (text.trim()) {
-            totalWords += text.trim().split(/\s+/).length;
-          }
-        }
-        break;
-        
-      case 'checkList':
-        if (block.content && Array.isArray(block.content)) {
-          block.content.forEach(item => {
-            if (item.text) {
-              totalChars += item.text.length;
-              totalWords += item.text.trim().split(/\s+/).length;
-            }
-          });
-        }
-        break;
-        
-      case 'mood':
-        if (block.props?.note) {
-          totalChars += block.props.note.length;
-          totalWords += block.props.note.trim().split(/\s+/).length;
-        }
-        break;
-        
-      // Images and dividers don't add to reading time
-    }
-  });
-  
-  // More accurate reading time calculation
-  // Average reading speed: 200-250 words per minute, we'll use 225
-  const readingTime = Math.max(1, Math.ceil(totalWords / 225));
-  
-  return { 
-    characters: totalChars, 
-    words: totalWords, 
-    readingTime
-  };
 };
 
 export default function NewMemory() {
@@ -196,9 +146,8 @@ export default function NewMemory() {
     try {
       const emotion = getEmotionFromMoodBlocks(blocks);
       
-      // FIXED: Include title in memory data
       const memoryData = {
-        title: title.trim(), // NEW: Send title to backend
+        title: title.trim(),
         content: blocks,
         emotion: emotion.trim(),
         color,
@@ -237,8 +186,8 @@ export default function NewMemory() {
     }
   };
 
-  // FIXED: Enhanced content stats calculation
-  const contentStats = calculateEnhancedContentStats(title, blocks);
+  // FIXED: Use pure text calculation for character count
+  const contentStats = calculatePureTextStats(title, blocks);
   const emotion = getEmotionFromMoodBlocks(blocks);
 
   return (

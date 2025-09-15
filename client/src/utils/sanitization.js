@@ -20,6 +20,26 @@ export const sanitizeHTML = (dirty) => {
 };
 
 /**
+ * Convert legacy HTML to modern format before sanitizing
+ * @param {string} html - HTML content that may contain legacy tags
+ * @returns {string} - HTML with modern equivalents
+ */
+const convertLegacyToModern = (html) => {
+  if (!html || typeof html !== 'string') return '';
+  
+  // Convert <font color="..."> to <span style="color: ...">
+  html = html.replace(/<font([^>]*?)color=['"]([^'"]*?)['"]([^>]*?)>/gi, 
+    '<span style="color: $2"$1$3>');
+  html = html.replace(/<\/font>/gi, '</span>');
+  
+  // Convert <strike> to <span style="text-decoration: line-through">
+  html = html.replace(/<strike>/gi, '<span style="text-decoration: line-through">');
+  html = html.replace(/<\/strike>/gi, '</span>');
+  
+  return html;
+};
+
+/**
  * Sanitize rich text HTML while preserving safe formatting
  * Allows formatting tags but blocks dangerous content
  * @param {string} dirty - Raw HTML content from rich text editor
@@ -28,28 +48,30 @@ export const sanitizeHTML = (dirty) => {
 export const sanitizeRichTextHTML = (dirty) => {
   if (!dirty || typeof dirty !== 'string') return '';
   
-  return DOMPurify.sanitize(dirty, {
-    // Allow safe formatting tags including legacy font and strike
+  // Convert legacy HTML to modern format first
+  const modernHTML = convertLegacyToModern(dirty);
+  
+  return DOMPurify.sanitize(modernHTML, {
+    // Allow safe formatting tags (removed font and strike, added span support)
     ALLOWED_TAGS: [
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'p', 'br', 'div', 'span',
       'strong', 'b', 'em', 'i', 'u', 'del', 'mark',
       'ul', 'ol', 'li',
-      'blockquote', 'code', 'pre',
-      'font', 'strike' // Add support for legacy contentEditable tags
+      'blockquote', 'code', 'pre'
     ],
     
-    // Allow safe styling attributes including color
+    // Allow safe styling attributes
     ALLOWED_ATTR: [
-      'style', 'class', 'color'
+      'style', 'class'
     ],
     
     // Additional security options
     KEEP_CONTENT: true,
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false,
-    FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input'],
-    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
+    FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input', 'font', 'strike'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'color'],
     
     // Custom hook to validate CSS
     SANITIZE_DOM: false // We'll handle DOM sanitization
@@ -82,8 +104,16 @@ const sanitizeInlineStyles = (styleAttr) => {
       // Validate color values
       if (key.includes('color')) {
         if (/^#[0-9A-Fa-f]{6}$/.test(value) || 
+            /^#[0-9A-Fa-f]{3}$/.test(value) ||
             /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/.test(value) ||
             /^[a-zA-Z]+$/.test(value)) {
+          safeProperties.push(`${key}: ${value}`);
+        }
+      }
+      // Validate text-decoration
+      else if (key === 'text-decoration') {
+        const validDecorations = ['none', 'underline', 'line-through', 'overline'];
+        if (validDecorations.includes(value)) {
           safeProperties.push(`${key}: ${value}`);
         }
       }
@@ -133,7 +163,7 @@ export const sanitizeMemoryBlocks = (blocks) => {
     if (Array.isArray(block.content)) {
       sanitizedBlock.content = block.content.map(item => {
         if (typeof item === 'string') {
-          // For text blocks, preserve rich formatting
+          // For text blocks, preserve rich formatting with modern HTML
           if (block.type === 'paragraph') {
             return sanitizeRichTextHTML(item);
           }
@@ -143,7 +173,7 @@ export const sanitizeMemoryBlocks = (blocks) => {
         if (item && typeof item === 'object' && item.text) {
           return {
             ...item,
-            // Preserve formatting for text content
+            // Preserve formatting for text content with modern HTML
             text: block.type === 'paragraph' ? 
               sanitizeRichTextHTML(item.text) : 
               sanitizeHTML(item.text)

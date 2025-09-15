@@ -16,15 +16,12 @@ const TextBlockEditor = forwardRef(({
   const editorRef = useRef(null);
 
   useEffect(() => {
-    // Inject CSS styles for rich text formatting
     injectRichTextStyles();
-
     if (autoFocus && editorRef.current) {
       editorRef.current.focus();
     }
   }, [autoFocus]);
 
-  // Set initial content
   useEffect(() => {
     if (editorRef.current && !content) {
       editorRef.current.innerHTML = `<p style="color: #9CA3AF; font-style: italic;">${placeholder}</p>`;
@@ -33,36 +30,53 @@ const TextBlockEditor = forwardRef(({
     }
   }, []);
 
-  const cleanupHTML = () => {
-    if (!editorRef.current) return;
-    
+  // Get current element and apply styles directly to it
+  const applyStyleToCurrentElement = (styleProp, styleValue) => {
     const selection = window.getSelection();
-    const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    if (!selection.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    let element = range.commonAncestorContainer;
     
-    let cursorPos = 0;
-    if (range) {
-      cursorPos = range.startOffset;
+    // Find the closest block element (p, h1-h6, etc.)
+    while (element && element.nodeType !== Node.ELEMENT_NODE) {
+      element = element.parentNode;
     }
     
-    let html = editorRef.current.innerHTML;
+    while (element && !['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'DIV'].includes(element.tagName)) {
+      element = element.parentNode;
+    }
     
-    // Remove nested headings and paragraphs
-    html = html.replace(/<(h[1-6])><p>|<p><(h[1-6])>/g, '<$1$2>');
-    html = html.replace(/<\/(h[1-6])><\/p>|<\/p><\/(h[1-6])>/g, '</$1$2>');
-    html = html.replace(/<(h[1-6])><(h[1-6])>/g, '<$2>');
-    html = html.replace(/<\/(h[1-6])><\/(h[1-6])>/g, '</$1>');
-    
-    editorRef.current.innerHTML = html;
-    
-    if (range && editorRef.current.firstChild) {
-      try {
-        const newRange = document.createRange();
-        newRange.setStart(editorRef.current.firstChild, Math.min(cursorPos, editorRef.current.firstChild.textContent.length));
-        newRange.collapse(true);
-        selection.removeAllRanges();
-        selection.addRange(newRange);
-      } catch (e) {
-        // Ignore cursor restoration errors
+    if (element && element !== editorRef.current) {
+      const currentStyle = element.getAttribute('style') || '';
+      const styleObj = {};
+      
+      // Parse existing styles
+      if (currentStyle) {
+        currentStyle.split(';').forEach(rule => {
+          if (rule.trim()) {
+            const [prop, value] = rule.split(':').map(s => s.trim());
+            if (prop && value) styleObj[prop] = value;
+          }
+        });
+      }
+      
+      // Apply new style
+      if (styleValue === null || styleValue === 'transparent' || styleValue === '') {
+        delete styleObj[styleProp]; // Remove style
+      } else {
+        styleObj[styleProp] = styleValue;
+      }
+      
+      // Rebuild style string
+      const newStyle = Object.entries(styleObj)
+        .map(([prop, value]) => `${prop}: ${value}`)
+        .join('; ');
+      
+      if (newStyle) {
+        element.setAttribute('style', newStyle);
+      } else {
+        element.removeAttribute('style');
       }
     }
   };
@@ -89,6 +103,8 @@ const TextBlockEditor = forwardRef(({
   };
 
   const handleFormat = (formatType, value = null) => {
+    editorRef.current.focus();
+    
     switch (formatType) {
       case 'bold':
         executeCommand('bold');
@@ -97,10 +113,20 @@ const TextBlockEditor = forwardRef(({
         executeCommand('italic');
         break;
       case 'underline':
-        executeCommand('underline');
+        // Apply underline to current element's style
+        applyStyleToCurrentElement('text-decoration', 
+          getCurrentTextDecoration().includes('underline') ? 
+          getCurrentTextDecoration().replace('underline', '').trim() || 'none' : 
+          (getCurrentTextDecoration() === 'none' ? 'underline' : getCurrentTextDecoration() + ' underline')
+        );
         break;
       case 'strikethrough':
-        executeCommand('strikeThrough');
+        // Apply strikethrough to current element's style
+        applyStyleToCurrentElement('text-decoration', 
+          getCurrentTextDecoration().includes('line-through') ? 
+          getCurrentTextDecoration().replace('line-through', '').trim() || 'none' : 
+          (getCurrentTextDecoration() === 'none' ? 'line-through' : getCurrentTextDecoration() + ' line-through')
+        );
         break;
       case 'heading':
         executeCommand('formatBlock', '<div>');
@@ -110,33 +136,59 @@ const TextBlockEditor = forwardRef(({
           } else {
             executeCommand('formatBlock', 'p');
           }
-          cleanupHTML();
         }, 10);
         break;
       case 'bulletList':
-        executeCommand('formatBlock', '<div>');
-        setTimeout(() => {
-          executeCommand('insertUnorderedList');
-          cleanupHTML();
-        }, 10);
+        executeCommand('insertUnorderedList');
         break;
       case 'numberedList':
-        executeCommand('formatBlock', '<div>');
-        setTimeout(() => {
-          executeCommand('insertOrderedList');
-          cleanupHTML();
-        }, 10);
+        executeCommand('insertOrderedList');
         break;
       case 'textColor':
-        executeCommand('foreColor', value);
+        applyStyleToCurrentElement('color', value);
         break;
       case 'backgroundColor':
-        executeCommand('hiliteColor', value);
+        if (value === 'transparent' || !value) {
+          applyStyleToCurrentElement('background-color', null);
+        } else {
+          applyStyleToCurrentElement('background-color', value);
+        }
         break;
     }
+
+    setTimeout(() => {
+      const newContent = editorRef.current.innerHTML || '';
+      onChange(newContent);
+    }, 10);
+  };
+
+  // Helper function to get current text decoration
+  const getCurrentTextDecoration = () => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return 'none';
+
+    const range = selection.getRangeAt(0);
+    let element = range.commonAncestorContainer;
+    
+    while (element && element.nodeType !== Node.ELEMENT_NODE) {
+      element = element.parentNode;
+    }
+    
+    while (element && !['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'DIV'].includes(element.tagName)) {
+      element = element.parentNode;
+    }
+    
+    if (element && element !== editorRef.current) {
+      const style = element.getAttribute('style') || '';
+      const match = style.match(/text-decoration:\s*([^;]+)/);
+      return match ? match[1].trim() : 'none';
+    }
+    
+    return 'none';
   };
 
   const handleKeyDown = (e) => {
+    // Clear placeholder
     if (editorRef.current && editorRef.current.innerHTML.includes('font-style: italic')) {
       editorRef.current.innerHTML = '<p><br></p>';
       const range = document.createRange();
@@ -147,6 +199,7 @@ const TextBlockEditor = forwardRef(({
       sel.addRange(range);
     }
 
+    // Handle keyboard shortcuts
     if (e.metaKey || e.ctrlKey) {
       switch (e.key) {
         case 'b':
@@ -160,6 +213,22 @@ const TextBlockEditor = forwardRef(({
         case 'u':
           e.preventDefault();
           handleFormat('underline');
+          break;
+        case 'z':
+          if (e.shiftKey) {
+            // Ctrl+Shift+Z or Cmd+Shift+Z = Redo
+            e.preventDefault();
+            document.execCommand('redo');
+          } else {
+            // Ctrl+Z or Cmd+Z = Undo
+            e.preventDefault();
+            document.execCommand('undo');
+          }
+          break;
+        case 'y':
+          // Ctrl+Y = Redo (Windows style)
+          e.preventDefault();
+          document.execCommand('redo');
           break;
         case '1':
         case '2':
