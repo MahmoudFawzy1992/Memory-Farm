@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "../utils/axiosInstance";
 import { toast } from "react-toastify";
-import { formatISO } from "date-fns";
 import { generateMemoryMetadata, isMemoryOwner, getAuthorInfo } from "../utils/blockViewerUtils";
+import { updateMemory, deleteMemory, toggleMemoryVisibility, getMemoryById } from "../services/memoryService";
 
 export default function useMemoryViewer(user) {
   const { id } = useParams();
@@ -19,7 +18,7 @@ export default function useMemoryViewer(user) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
-  // Edit form state - keeping for backward compatibility with existing modal
+  // Legacy edit form state - keeping for backward compatibility
   const [editedColor, setEditedColor] = useState("#8B5CF6");
   const [editedText, setEditedText] = useState("");
   const [editedEmotionText, setEditedEmotionText] = useState("");
@@ -33,8 +32,7 @@ export default function useMemoryViewer(user) {
         setLoading(true);
         setError(null);
         
-        const response = await axios.get(`/memory/${id}`);
-        const fetchedMemory = response.data;
+        const fetchedMemory = await getMemoryById(id);
         
         // Generate metadata for block-based display
         const metadata = generateMemoryMetadata(fetchedMemory);
@@ -80,7 +78,7 @@ export default function useMemoryViewer(user) {
     if (!memory || !authorInfo?.isOwner) return;
     
     try {
-      await axios.delete(`/memory/${id}`);
+      await deleteMemory(id);
       toast.success("Memory deleted successfully");
       navigate("/");
     } catch (error) {
@@ -89,7 +87,40 @@ export default function useMemoryViewer(user) {
     }
   };
 
-  const handleUpdate = async () => {
+  /**
+   * Handle memory update with new block-based system
+   */
+  const handleUpdate = async (updateData) => {
+    if (!memory || !authorInfo?.isOwner) return;
+    
+    try {
+      const updatedMemory = await updateMemory(id, updateData);
+      
+      setShowEditModal(false);
+      toast.success("Memory updated successfully! 🎉");
+      
+      // Update local state with new data
+      const newMetadata = generateMemoryMetadata(updatedMemory);
+      const newAuthorInfo = getAuthorInfo(updatedMemory, user);
+      
+      setMemory(updatedMemory);
+      setMemoryMetadata(newMetadata);
+      setAuthorInfo(newAuthorInfo);
+      
+      return updatedMemory;
+      
+    } catch (error) {
+      console.error("Update error:", error);
+      const errorMessage = error.response?.data?.error || "Failed to update memory";
+      toast.error(errorMessage);
+      throw error; // Re-throw to handle in EditMemoryModal
+    }
+  };
+
+  /**
+   * Legacy update handler for backward compatibility
+   */
+  const handleLegacyUpdate = async () => {
     if (!memory || !authorInfo?.isOwner) return;
     
     try {
@@ -98,9 +129,7 @@ export default function useMemoryViewer(user) {
       const updateData = {
         emotion,
         color: editedColor,
-        memoryDate: editedMemoryDate 
-          ? formatISO(editedMemoryDate, { representation: "date" }) 
-          : undefined,
+        memoryDate: editedMemoryDate?.toISOString(),
       };
       
       // Only include text if it exists (legacy support)
@@ -108,14 +137,14 @@ export default function useMemoryViewer(user) {
         updateData.text = editedText;
       }
 
-      await axios.put(`/memory/${id}`, updateData);
+      await updateMemory(id, updateData);
       setShowEditModal(false);
       toast.success("Memory updated successfully");
       
       // Refresh memory data
       window.location.reload();
     } catch (error) {
-      console.error("Update error:", error);
+      console.error("Legacy update error:", error);
       toast.error("Failed to update memory");
     }
   };
@@ -124,15 +153,15 @@ export default function useMemoryViewer(user) {
     if (!memory || !authorInfo?.isOwner) return;
     
     try {
-      const response = await axios.patch(`/memory/${id}/visibility`);
+      const response = await toggleMemoryVisibility(id);
       
       setMemory(prev => ({ 
         ...prev, 
-        isPublic: response.data.isPublic 
+        isPublic: response.isPublic 
       }));
       
       toast.success(
-        `Memory is now ${response.data.isPublic ? "public" : "private"}`
+        `Memory is now ${response.isPublic ? "public" : "private"}`
       );
     } catch (error) {
       console.error("Toggle visibility error:", error);
@@ -165,7 +194,7 @@ export default function useMemoryViewer(user) {
     showDeleteConfirm,
     setShowDeleteConfirm,
     
-    // Edit form state (legacy compatibility)
+    // Legacy edit form state (for backward compatibility)
     editedColor,
     setEditedColor,
     editedText,
@@ -181,7 +210,8 @@ export default function useMemoryViewer(user) {
     
     // Actions
     handleDelete,
-    handleUpdate,
+    handleUpdate, // New block-based update
+    handleLegacyUpdate, // Legacy update (kept for compatibility)
     handleToggleVisibility,
     goBack,
     goToAuthor,

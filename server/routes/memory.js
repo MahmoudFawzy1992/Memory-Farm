@@ -29,7 +29,7 @@ const { validateCursorPage } = require('../validators/paginationValidators');
 const { validationResult } = require('express-validator');
 
 // Import security middleware
-const { memoryLimiter } = require('../middleware/rateLimiting');
+const { memoryLimiter, apiLimiter } = require('../middleware/rateLimiting');
 const { sanitizeSearchQuery, validateBase64Image } = require('../middleware/sanitization');
 
 const handleValidationErrors = (req, res, next) => {
@@ -172,7 +172,7 @@ router.post('/validate-emotion',
 // FIXED: Create memory with image validation
 router.post('/', 
   memoryLimiter,
-  validateMemoryImages, // NEW: Validate images before other validation
+  validateMemoryImages,
   async (req, res, next) => {
     try {
       logMemoryOperation(req, 'create_attempt', true, `Title: ${req.body.title?.substring(0, 50)}`);
@@ -232,9 +232,10 @@ router.get('/public/all', getPublicMemories);
 // Get single memory (no rate limiting - read operation)
 router.get('/:id', getMemoryById);
 
-// FIXED: Update memory with image validation
+// FIXED: Update memory with rate limiting and image validation
 router.put('/:id', 
-  validateMemoryImages, // NEW: Validate images in updates too
+  apiLimiter, // Use API limiter instead of memory limiter for updates (less restrictive)
+  validateMemoryImages,
   async (req, res, next) => {
     try {
       logMemoryOperation(req, 'update_attempt', true, `Memory: ${req.params.id}`);

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import useMemoryViewer from "../hooks/useMemoryViewer";
-import axios from "../utils/axiosInstance";
 import { toast } from "react-toastify";
 
 import LoadingOrError from "../components/LoadingOrError";
@@ -14,11 +13,13 @@ import MemorySidebar from "../components/MemorySidebar";
 import EditMemoryModal from "../components/EditMemoryModal";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import ReportModal from "../components/ReportModal";
+import { updateMemory } from "../services/memoryService";
 
 export default function ViewMemory() {
   const { user } = useAuth();
   const [showReportModal, setShowReportModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isUpdatingMemory, setIsUpdatingMemory] = useState(false);
 
   const {
     memory,
@@ -60,7 +61,7 @@ export default function ViewMemory() {
       );
 
       // Update backend immediately
-      await axios.put(`/memory/${memory._id}`, {
+      await updateMemory(memory._id, {
         content: updatedContent
       });
 
@@ -74,6 +75,20 @@ export default function ViewMemory() {
     } catch (error) {
       console.error('Failed to update todo:', error);
       toast.error("Failed to update todo");
+    }
+  };
+
+  // Handle memory update from edit modal
+  const handleMemoryUpdate = async (updateData) => {
+    setIsUpdatingMemory(true);
+    try {
+      await handleUpdate(updateData);
+      // handleUpdate already shows success toast and updates state
+    } catch (error) {
+      // Error is already handled in handleUpdate
+      console.error('Memory update failed:', error);
+    } finally {
+      setIsUpdatingMemory(false);
     }
   };
 
@@ -135,7 +150,10 @@ export default function ViewMemory() {
                 <MemoryControls
                   isOwner={isOwner}
                   isPublic={memory.isPublic}
-                  onEdit={() => setShowEditModal(true)}
+                  onEdit={() => {
+                    console.log('Edit button clicked, opening modal'); // Debug log
+                    setShowEditModal(true);
+                  }}
                   onDelete={() => setShowDeleteConfirm(true)}
                   onToggleVisibility={handleToggleVisibility}
                   onReport={handleReport}
@@ -170,20 +188,13 @@ export default function ViewMemory() {
       {/* Modals */}
       <EditMemoryModal
         show={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onUpdate={handleUpdate}
-        editedText={editedText}
-        setEditedText={setEditedText}
-        editedEmoji={editedEmoji}
-        setEditedEmoji={setEditedEmoji}
-        editedEmotionText={editedEmotionText}
-        setEditedEmotionText={setEditedEmotionText}
-        showPicker={showPicker}
-        setShowPicker={setShowPicker}
-        editedColor={editedColor}
-        setEditedColor={setEditedColor}
-        editedMemoryDate={editedMemoryDate}
-        setEditedMemoryDate={setEditedMemoryDate}
+        onClose={() => {
+          console.log('Closing edit modal'); // Debug log
+          setShowEditModal(false);
+        }}
+        onUpdate={handleMemoryUpdate}
+        memory={memory}
+        isSubmitting={isUpdatingMemory}
       />
 
       <ConfirmDeleteModal
