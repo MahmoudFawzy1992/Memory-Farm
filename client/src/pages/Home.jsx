@@ -1,44 +1,40 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import MemoryCard from '../components/MemoryCard';
 import FilterBar from '../components/FilterBar';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import PageWrapper from '../components/PageWrapper';
+import { FilterProvider } from '../context/FilterContext';
 import { useMemories } from '../hooks/useMemories';
-import { emotions } from '../constants/emotions';
-import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { useFilteredMemories } from '../hooks/useFilteredMemories';
+import { useFilters } from '../hooks/useFilters';
 import { toast } from 'react-toastify';
 import axios from '../utils/axiosInstance';
 
-function Home() {
-  const [selectedEmotion, setSelectedEmotion] = useState('All');
-  const [selectedMonth, setSelectedMonth] = useState(new Date());
-  const [hasUserSelectedMonth, setHasUserSelectedMonth] = useState(false);
+/**
+ * Home page content with enhanced filtering
+ * Separated from provider wrapper for proper hook usage
+ */
+function HomeContent() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedMemoryId, setSelectedMemoryId] = useState(null);
 
+  // Get memories and filter state
   const { memories, loading, setMemories } = useMemories();
+  const { filters } = useFilters('home');
+  
+  // Apply filters with statistics
+  const { 
+    filteredMemories, 
+    stats, 
+    hasResults, 
+    isEmpty: noFilteredResults,
+    isFiltered 
+  } = useFilteredMemories(memories, filters, { 
+    sortBy: 'date', 
+    sortOrder: 'desc' 
+  });
 
-  const filtered = useMemo(() => {
-    let result = memories || [];
-    
-    // Only apply month filter if user has manually selected a month
-    if (hasUserSelectedMonth && selectedMonth) {
-      const range = { start: startOfMonth(selectedMonth), end: endOfMonth(selectedMonth) };
-      result = result.filter((m) => {
-        const when = m.memoryDate ? new Date(m.memoryDate) : (m.createdAt ? new Date(m.createdAt) : null);
-        return when && isWithinInterval(when, range);
-      });
-    }
-    
-    // Apply emotion filter
-    if (selectedEmotion !== 'All') {
-      result = result.filter(m => m.emotion?.toLowerCase().includes(selectedEmotion.toLowerCase()));
-    }
-    
-    return result;
-  }, [memories, selectedEmotion, selectedMonth, hasUserSelectedMonth]);
-
-  // FIXED: Simplified delete functionality
+  // Handle memory deletion
   const handleDeleteClick = (memoryId) => {
     setSelectedMemoryId(memoryId);
     setShowDeleteModal(true);
@@ -62,80 +58,126 @@ function Home() {
     }
   };
 
-  const handleMonthChange = (newMonth) => {
-    setSelectedMonth(newMonth);
-    setHasUserSelectedMonth(true);
-  };
-
-  const showAllMemories = () => {
-    setHasUserSelectedMonth(false);
-    setSelectedMonth(new Date());
-  };
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading memories...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <PageWrapper>
-      <div className="space-y-4">
-        <FilterBar
-          emotions={emotions}
-          selectedEmotion={selectedEmotion}
-          onFilter={setSelectedEmotion}
-          showMonthPicker
-          month={selectedMonth}
-          onMonthChange={handleMonthChange}
-        />
+    <div className="space-y-6">
+      {/* Enhanced Filter Bar */}
+      <FilterBar 
+        variant="full"
+        showSections={true}
+        defaultExpanded={['emotions']}
+      />
 
-        {hasUserSelectedMonth && (
-          <button
-            onClick={showAllMemories}
-            className="text-sm text-purple-600 hover:text-purple-800 hover:underline transition-colors duration-200"
-          >
-            ← Show all memories
-          </button>
-        )}
+      {/* Results summary */}
+      {isFiltered && (
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                <span>
+                  Showing <strong className="text-purple-600">{stats.filtered}</strong> of{' '}
+                  <strong>{stats.total}</strong> memories
+                </span>
+                {stats.percentage < 100 && (
+                  <span className="text-gray-400">
+                    ({stats.percentage}% visible)
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            {stats.hidden > 0 && (
+              <div className="text-xs text-gray-500">
+                {stats.hidden} memories hidden by filters
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="text-center">
-              <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-500">Loading memories...</p>
+      {/* Memory list or empty states */}
+      {!hasResults && stats.total === 0 ? (
+        /* No memories at all */
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">📝</div>
+          <p className="text-gray-500 text-lg mb-2">No memories found.</p>
+          <p className="text-gray-400 text-sm">Start your memory journey today!</p>
+        </div>
+      ) : noFilteredResults ? (
+        /* No results after filtering */
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">🔍</div>
+          <p className="text-gray-500 text-lg mb-2">No memories match your filters.</p>
+          <p className="text-gray-400 text-sm mb-4">
+            Try adjusting your filters to see more results.
+          </p>
+          <FilterBar variant="chips-only" />
+        </div>
+      ) : (
+        /* Display filtered memories */
+        <>
+          <ul className="space-y-4">
+            {filteredMemories.map((memory) => (
+              <MemoryCard 
+                key={memory._id} 
+                memory={memory} 
+                onDelete={handleDeleteClick} 
+              />
+            ))}
+          </ul>
+
+          {/* Results footer */}
+          <div className="text-center py-6 border-t border-gray-100">
+            <div className="text-sm text-gray-500">
+              {isFiltered ? (
+                <>
+                  Showing {filteredMemories.length} filtered result{filteredMemories.length !== 1 ? 's' : ''}
+                  {stats.hidden > 0 && (
+                    <span className="block mt-1">
+                      {stats.hidden} more memories available - adjust filters to see them
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>All {filteredMemories.length} memories displayed</>
+              )}
             </div>
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📝</div>
-            <p className="text-gray-500 text-lg mb-2">
-              {hasUserSelectedMonth ? "No memories found for this month." : "No memories found."}
-            </p>
-            <p className="text-gray-400 text-sm">
-              {hasUserSelectedMonth ? "Try a different month or create your first memory!" : "Start your memory journey today!"}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600">
-                Showing {filtered.length} {filtered.length === 1 ? 'memory' : 'memories'}
-                {hasUserSelectedMonth && ` for ${selectedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`}
-              </p>
-            </div>
-            <ul className="space-y-4">
-              {filtered.map((m) => (
-                <MemoryCard 
-                  key={m._id} 
-                  memory={m} 
-                  onDelete={handleDeleteClick} 
-                />
-              ))}
-            </ul>
-          </>
-        )}
-      </div>
+        </>
+      )}
 
+      {/* Delete confirmation modal */}
       <ConfirmDeleteModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={confirmDelete}
       />
+    </div>
+  );
+}
+
+/**
+ * Main Home component wrapped with FilterProvider
+ * Uses 'home' page type with default "show all" behavior
+ */
+function Home() {
+  return (
+    <PageWrapper>
+      <FilterProvider pageType="home">
+        <HomeContent />
+      </FilterProvider>
     </PageWrapper>
   );
 }
