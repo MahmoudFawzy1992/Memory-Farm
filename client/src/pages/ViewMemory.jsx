@@ -146,12 +146,12 @@ export default function ViewMemory() {
                   onBlockUpdate={handleBlockUpdate}
                 />
 
-                {/* Memory controls */}
+                {/* Memory controls - UPDATED: Pass full memory object */}
                 <MemoryControls
                   isOwner={isOwner}
                   isPublic={memory.isPublic}
+                  memory={memory} // NEW: Pass full memory object for sharing
                   onEdit={() => {
-                    console.log('Edit button clicked, opening modal'); // Debug log
                     setShowEditModal(true);
                   }}
                   onDelete={() => setShowDeleteConfirm(true)}
@@ -189,7 +189,6 @@ export default function ViewMemory() {
       <EditMemoryModal
         show={showEditModal}
         onClose={() => {
-          console.log('Closing edit modal'); // Debug log
           setShowEditModal(false);
         }}
         onUpdate={handleMemoryUpdate}

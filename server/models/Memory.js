@@ -152,7 +152,6 @@ memorySchema.index({ hasImages: 1, isPublic: 1 }); // NEW: Index for image filte
 
 // FIXED: Enhanced pre-save middleware with image processing
 memorySchema.pre('save', function(next) {
-  console.log('Pre-save middleware running...');
   
   if (this.isModified('content')) {
     this.extractedText = extractTextFromBlocks(this.content);
@@ -170,17 +169,10 @@ memorySchema.pre('save', function(next) {
       });
     }
     
-    console.log('Content processed:', {
-      blockCount: this.blockCount,
-      hasImages: this.hasImages,
-      imageCount: this.imageCount,
-      textLength: this.extractedText?.length || 0
-    });
   }
   
   if (this.isModified('emotion')) {
     const calculatedFamily = getEmotionFamilyKey(this.emotion);
-    console.log('Calculated emotion family:', calculatedFamily);
     this.emotionFamily = calculatedFamily || 'joy';
   }
   

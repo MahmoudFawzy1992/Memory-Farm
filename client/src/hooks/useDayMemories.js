@@ -17,9 +17,7 @@ export const useDayMemories = () => {
     setLoading(true);
     
     try {
-      console.log("📅 Loading memories for day:", date);
       const memories = await getMemoriesByDate(date);
-      console.log("✅ Day memories loaded:", memories);
       setDayMemories(memories);
     } catch (error) {
       console.error("❌ Failed to load day memories:", error);

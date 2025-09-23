@@ -83,7 +83,6 @@ function MoodTrackerContent() {
   // Handle filter emotion selection (legacy compatibility)
   const handleEmotionFilter = (emotion) => {
     // This could be enhanced to work with new filter system
-    console.log('Legacy emotion filter:', emotion);
   };
 
   if (loading) {

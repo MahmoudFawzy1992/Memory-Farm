@@ -16,6 +16,7 @@ const memoryRoutes = require('./routes/memory');
 const userRoutes = require('./routes/user');
 const reportRoutes = require('./routes/report');
 const insightsRoutes = require('./routes/insights');
+const shareRoutes = require('./routes/share'); // NEW: Share routes
 const requireAuth = require('./middleware/requireAuth');
 
 const app = express();
@@ -93,6 +94,7 @@ app.use('/api/memory', requireAuth, memoryRoutes);
 app.use('/api/user', requireAuth, userRoutes);
 app.use('/api/report', requireAuth, reportRoutes);
 app.use('/api/insights', requireAuth, insightsRoutes);
+app.use('/api/share', requireAuth, shareRoutes); // NEW: Protected share routes
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -142,10 +144,8 @@ app.use((err, req, res, next) => {
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('🔥 SIGTERM received, shutting down gracefully...');
   try {
     await mongoose.connection.close();
-    console.log('📦 MongoDB connection closed');
     process.exit(0);
   } catch (error) {
     console.error('Error closing MongoDB connection:', error);
@@ -154,10 +154,8 @@ process.on('SIGTERM', async () => {
 });
 
 process.on('SIGINT', async () => {
-  console.log('🔥 SIGINT received, shutting down gracefully...');
   try {
     await mongoose.connection.close();
-    console.log('📦 MongoDB connection closed');
     process.exit(0);
   } catch (error) {
     console.error('Error closing MongoDB connection:', error);
@@ -173,7 +171,7 @@ mongoose.connect(process.env.MONGO_URI)
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`🛡️  Security: Helmet enabled, Rate limiting active`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`✨ New Features: Insights & Onboarding enabled`);
+      console.log(`✨ New Features: Insights & Onboarding & Sharing enabled`);
     });
   })
   .catch(err => {

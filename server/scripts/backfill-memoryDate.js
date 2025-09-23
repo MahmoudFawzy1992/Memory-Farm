@@ -13,7 +13,6 @@ const Memory = require('../models/Memory');
       [{ $set: { memoryDate: '$createdAt' } }] // aggregation pipeline update
     );
 
-    console.log(`Backfill done. Matched: ${result.matchedCount ?? result.n}, Modified: ${result.modifiedCount ?? result.nModified}`);
     await mongoose.disconnect();
     process.exit(0);
   } catch (err) {

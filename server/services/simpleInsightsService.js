@@ -15,31 +15,24 @@ class SimpleInsightsService {
    */
   static async generateInsightForUser(userId, memoryCount, latestMemoryId) {
     try {
-        console.log(`🔍 Checking insights for user ${userId}, memory count: ${memoryCount}`);
-
       // Check if insight already exists for this memory count
       const existingInsight = await Insight.hasRecentInsight(userId, memoryCount);
       if (existingInsight) {
-              console.log(`✅ Existing insight found for memory count ${memoryCount}`);
         return existingInsight;
       }
 
       // Get user preferences
       const user = await User.findById(userId);
       if (!user) {
-        console.log(`❌ User not found: ${userId}`);
         return null;
       }
 
       const shouldReceive = user.shouldReceiveInsight(memoryCount);
-      console.log(`🎯 Should receive insight: ${shouldReceive}, frequency: ${user.insightsPreferences?.frequency}`);
 
       if (!shouldReceive) {
-        console.log(`❌ User should not receive insight for memory count ${memoryCount}`);
         return null;
       }
 
-      console.log(`🚀 Generating insight for memory count ${memoryCount}`);
       // Analyze patterns based on user's memories
       const patterns = await this.analyzeUserPatterns(userId);
       
@@ -86,7 +79,6 @@ class SimpleInsightsService {
       return this.getDefaultPatterns();
     }
 
-    console.log(`📊 Analyzing ${memories.length} memories for user ${userId}`);
 
     // Extract and clean emotions properly
     const emotions = memories
@@ -94,12 +86,9 @@ class SimpleInsightsService {
         if (!m.emotion) return null;
         // Remove emoji and clean the emotion text
         const cleanEmotion = m.emotion.replace(/^\p{Emoji}+/u, '').trim();
-        console.log(`🎭 Raw emotion: "${m.emotion}" -> Clean: "${cleanEmotion}"`);
         return cleanEmotion;
       })
       .filter(Boolean);
-
-    console.log(`🎯 Clean emotions found: ${emotions}`);
 
     // Count emotions accurately
     const emotionCounts = emotions.reduce((acc, emotion) => {
@@ -107,14 +96,10 @@ class SimpleInsightsService {
       return acc;
     }, {});
 
-    console.log(`📈 Emotion counts:`, emotionCounts);
-
     // Find the most common emotion
     const dominantEmotion = Object.keys(emotionCounts).length > 0
       ? Object.keys(emotionCounts).sort((a, b) => emotionCounts[b] - emotionCounts[a])[0]
       : 'Happy';
-
-    console.log(`👑 Dominant emotion: ${dominantEmotion}`);
 
     // Calculate writing patterns
     const wordCounts = memories
@@ -159,7 +144,6 @@ class SimpleInsightsService {
       }
     };
 
-    console.log(`✅ Final patterns:`, patterns);
     return patterns;
   } catch (error) {
     console.error('Error analyzing patterns:', error);

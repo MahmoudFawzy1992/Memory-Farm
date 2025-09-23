@@ -192,7 +192,6 @@ export function useOnboardingStatus() {
       }
       
       const response = await axios.get('/insights/onboarding/status');
-      console.log('Onboarding status fetched:', response.data);
       setStatus(response.data);
       setInitialized(true);
       return response.data;
@@ -223,7 +222,6 @@ export function useOnboardingStatus() {
         shouldShowTutorial: stepName === 'tutorial_completed' ? false : prev?.shouldShowTutorial
       }));
       
-      console.log(`Completed step: ${stepName}`, response.data);
       return response.data;
     } catch (err) {
       console.error('Error completing onboarding step:', err);
@@ -243,7 +241,6 @@ export function useOnboardingStatus() {
         shouldShowTutorial: false
       }));
       
-      console.log(`Skipped: ${skipType}`, response.data);
       return response.data;
     } catch (err) {
       console.error('Error skipping onboarding:', err);
@@ -262,7 +259,6 @@ export function useOnboardingStatus() {
         onboardingStatus: response.data.onboardingStatus
       }));
       
-      console.log('Welcome marked as shown', response.data);
       return response.data;
     } catch (err) {
       console.error('Error marking welcome shown:', err);

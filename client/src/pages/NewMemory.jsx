@@ -60,8 +60,6 @@ export default function NewMemory() {
           }
         });
         
-        console.log('Fresh tutorial status check:', response.data);
-        
         if (response.data.shouldShowTutorial && !response.data.onboardingStatus?.tutorialCompleted) {
           setShowTutorial(true);
         }
@@ -100,7 +98,6 @@ export default function NewMemory() {
 
   // Handle tutorial completion - immediate state update
   const handleTutorialComplete = async () => {
-    console.log('Completing tutorial...');
     setShowTutorial(false); // Hide immediately to prevent flickering
     
     try {
@@ -112,8 +109,6 @@ export default function NewMemory() {
           }
         }
       );
-      console.log('Tutorial completion response:', response.data);
-      showNotification('Tutorial completed! You\'re ready to create amazing memories!', 'success');
     } catch (error) {
       console.error('Error completing tutorial:', error);
       showNotification('Tutorial completed!', 'success'); // Show success anyway
@@ -122,7 +117,6 @@ export default function NewMemory() {
 
   // Handle tutorial skip - immediate state update  
   const handleTutorialSkip = async () => {
-    console.log('Skipping tutorial...');
     setShowTutorial(false); // Hide immediately to prevent flickering
     
     try {
@@ -134,7 +128,6 @@ export default function NewMemory() {
           }
         }
       );
-      console.log('Tutorial skip response:', response.data);
       showNotification('Tutorial skipped. Check the FAQ button for help anytime!', 'info');
     } catch (error) {
       console.error('Error skipping tutorial:', error);

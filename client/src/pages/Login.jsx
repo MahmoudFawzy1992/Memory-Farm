@@ -65,8 +65,6 @@ function Login() {
         }
       });
       
-      console.log('Fresh onboarding check:', response.data);
-      
       if (response.data.shouldShowWelcome && !response.data.onboardingStatus?.welcomeShown) {
         setShowWelcome(true);
       } else {

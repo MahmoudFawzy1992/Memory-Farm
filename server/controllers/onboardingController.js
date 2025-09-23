@@ -57,8 +57,6 @@ exports.markWelcomeShown = async (req, res) => {
     user.onboardingStatus.welcomeShown = true;
     await user.save();
 
-    console.log(`Welcome marked as shown for user: ${req.user.id}`);
-
     res.json({ 
       success: true,
       onboardingStatus: user.onboardingStatus
@@ -145,8 +143,6 @@ exports.completeOnboardingStep = async (req, res) => {
       await user.save();
     }
 
-    console.log(`Step completed: ${stepName} for user: ${req.user.id}`);
-
     res.json({
       success: true,
       stepCompleted: stepName,
@@ -182,8 +178,6 @@ exports.skipOnboarding = async (req, res) => {
     
     user.onboardingStatus.isCompleted = true;
     await user.save();
-
-    console.log(`Onboarding skipped (${skipType}) for user: ${req.user.id}`);
 
     res.json({
       success: true,

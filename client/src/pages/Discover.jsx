@@ -84,7 +84,6 @@ function DiscoverContent() {
   // Legacy emotion selection handler for charts
   const handleEmotionSelect = (label) => {
     // This could be enhanced to integrate with new filter system
-    console.log('Chart emotion selected:', label);
   };
 
   return (
