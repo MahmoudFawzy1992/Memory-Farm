@@ -57,13 +57,21 @@ function Navbar() {
                 <NavLink to="/" className={navLinkClass}>
                   🏠 Home
                 </NavLink>
-                <NavLink to="/discover" className={navLinkClass}>
+                <NavLink 
+                  to="/discover" 
+                  className={navLinkClass}
+                  id="discover-link"
+                >
                   🌍 Discover
                 </NavLink>
                 <NavLink to="/new" className={navLinkClass}>
                   📝 New Memory
                 </NavLink>
-                <NavLink to="/mood-tracker" className={navLinkClass}>
+                <NavLink 
+                  to="/mood-tracker" 
+                  className={navLinkClass}
+                  id="mood-tracker-link"
+                >
                   📊 Mood Tracker
                 </NavLink>
                 <ProfileMenu />
@@ -131,13 +139,23 @@ function Navbar() {
                 <NavLink to="/" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
                   🏠 Home
                 </NavLink>
-                <NavLink to="/discover" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+                <NavLink 
+                  to="/discover" 
+                  className={mobileNavLinkClass} 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  id="discover-link-mobile"
+                >
                   🌍 Discover
                 </NavLink>
                 <NavLink to="/new" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
                   📝 New Memory
                 </NavLink>
-                <NavLink to="/mood-tracker" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+                <NavLink 
+                  to="/mood-tracker" 
+                  className={mobileNavLinkClass} 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  id="mood-tracker-link-mobile"
+                >
                   📊 Mood Tracker
                 </NavLink>
                 <div className="px-4 py-3">

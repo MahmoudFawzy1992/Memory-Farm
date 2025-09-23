@@ -84,7 +84,8 @@ export default function MoodBlock({
             max="10"
             value={intensity}
             onChange={(e) => handleIntensityChange(parseInt(e.target.value))}
-            className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+            className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider intensity-slider"
+            data-tutorial="intensity-slider"
             style={{
               background: `linear-gradient(to right, ${getIntensityColor(intensity)} 0%, ${getIntensityColor(intensity)} ${intensity * 10}%, #E5E7EB ${intensity * 10}%, #E5E7EB 100%)`
             }}

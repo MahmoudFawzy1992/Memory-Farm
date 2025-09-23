@@ -1,7 +1,7 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
-import LandingPage from "./pages/LandingPage"; // 🆕 Landing page for guests
+import LandingPage from "./pages/LandingPage";
 import NewMemory from "./pages/NewMemory";
 import ViewMemory from "./pages/ViewMemory";
 import NotFound from "./pages/NotFound";
@@ -19,14 +19,18 @@ import ResetPassword from "./pages/ResetPassword";
 
 import { AnimatePresence } from "framer-motion";
 import PrivateRoute from "./components/routes/PrivateRoute";
-import { useAuth } from "./context/AuthContext"; // 🆕 Import auth context
+import HelpButton from "./components/onboarding/HelpButton";
+import { useAuth } from "./context/AuthContext";
 
 function App() {
   const location = useLocation();
-  const { user } = useAuth(); // 🆕 Get current user
+  const { user } = useAuth();
+
+  // Check if we should show help button
+  const shouldShowHelpButton = user && !isAuthPage(location.pathname);
 
   return (
-    <AnimatePresence mode="wait">
+    <div>
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Layout />}>
           {/* Public Routes */}
@@ -37,7 +41,7 @@ function App() {
           <Route path="forgot-password" element={<ForgotPassword />} />
           <Route path="reset-password" element={<ResetPassword />} />
 
-          {/* 🆕 Smart Home Route - Landing for guests, Home for users */}
+          {/* Smart Home Route - Landing for guests, Home for users */}
           <Route
             index
             element={
@@ -113,8 +117,24 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
-    </AnimatePresence>
+
+      {/* Global Help Button - only show for authenticated users on non-auth pages */}
+      {shouldShowHelpButton && <HelpButton />}
+    </div>
   );
+}
+
+// Helper function to check if current page is auth-related
+function isAuthPage(pathname) {
+  const authPages = [
+    '/login',
+    '/signup', 
+    '/verify-prompt',
+    '/verify-email',
+    '/forgot-password',
+    '/reset-password'
+  ];
+  return authPages.includes(pathname);
 }
 
 export default App;

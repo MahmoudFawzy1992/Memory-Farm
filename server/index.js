@@ -15,6 +15,7 @@ const authRoutes = require('./routes/auth');
 const memoryRoutes = require('./routes/memory');
 const userRoutes = require('./routes/user');
 const reportRoutes = require('./routes/report');
+const insightsRoutes = require('./routes/insights');
 const requireAuth = require('./middleware/requireAuth');
 
 const app = express();
@@ -50,7 +51,7 @@ app.use(cookieParser());
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
-// CORS configuration
+// CORS configuration - UPDATED to allow cache-control headers
 app.use(cors({
   origin: [
     'http://localhost:5173',
@@ -59,7 +60,14 @@ app.use(cors({
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'Cookie',
+    'Cache-Control',    // Added for onboarding cache prevention
+    'Pragma',           // Added for onboarding cache prevention
+    'Expires'           // Added for onboarding cache prevention
+  ],
   exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset']
 }));
 
@@ -84,6 +92,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/memory', requireAuth, memoryRoutes);
 app.use('/api/user', requireAuth, userRoutes);
 app.use('/api/report', requireAuth, reportRoutes);
+app.use('/api/insights', requireAuth, insightsRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -132,20 +141,28 @@ app.use((err, req, res, next) => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('🔄 SIGTERM received, shutting down gracefully...');
-  mongoose.connection.close(() => {
+process.on('SIGTERM', async () => {
+  console.log('🔥 SIGTERM received, shutting down gracefully...');
+  try {
+    await mongoose.connection.close();
     console.log('📦 MongoDB connection closed');
     process.exit(0);
-  });
+  } catch (error) {
+    console.error('Error closing MongoDB connection:', error);
+    process.exit(1);
+  }
 });
 
-process.on('SIGINT', () => {
-  console.log('🔄 SIGINT received, shutting down gracefully...');
-  mongoose.connection.close(() => {
+process.on('SIGINT', async () => {
+  console.log('🔥 SIGINT received, shutting down gracefully...');
+  try {
+    await mongoose.connection.close();
     console.log('📦 MongoDB connection closed');
     process.exit(0);
-  });
+  } catch (error) {
+    console.error('Error closing MongoDB connection:', error);
+    process.exit(1);
+  }
 });
 
 // Start server
@@ -156,6 +173,7 @@ mongoose.connect(process.env.MONGO_URI)
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`🛡️  Security: Helmet enabled, Rate limiting active`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`✨ New Features: Insights & Onboarding enabled`);
     });
   })
   .catch(err => {

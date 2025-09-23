@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Memory = require('../models/Memory');
+const SimpleInsightsService = require('../services/simpleInsightsService');
 const { validateMemory, validateEmotionInput } = require('../validators/memoryValidators');
 const { validateMemoryData, validateImageData } = require('../validators/blockContentSchemas');
 const { validateFileUploads } = require('../validators/fileValidation');
@@ -60,7 +61,7 @@ const logMemoryOperation = (req, operation, success = true, details = '') => {
   });
 };
 
-// FIXED: Enhanced image validation for memory content
+// Enhanced image validation for memory content
 const validateMemoryImages = (req, res, next) => {
   if (!req.body.content || !Array.isArray(req.body.content)) {
     return next();
@@ -169,7 +170,7 @@ router.post('/validate-emotion',
   }
 );
 
-// FIXED: Create memory with image validation
+// ENHANCED: Create memory with insight generation
 router.post('/', 
   memoryLimiter,
   validateMemoryImages,
@@ -177,7 +178,7 @@ router.post('/',
     try {
       logMemoryOperation(req, 'create_attempt', true, `Title: ${req.body.title?.substring(0, 50)}`);
       
-      // Validate using Zod schema (includes title and content validation)
+      // Validate using Zod schema
       const validation = validateMemoryData(req.body, false);
       if (!validation.valid) {
         logMemoryOperation(req, 'create', false, `Validation failed: ${validation.errors.join(', ')}`);
@@ -206,7 +207,33 @@ router.post('/',
       });
       
       logMemoryOperation(req, 'create', true, `Memory created: ${memory._id}`);
-      res.status(201).json(memory);
+      
+      // ENHANCED: Trigger insight generation after memory creation
+      try {
+        const memoryCount = await Memory.countDocuments({ userId: req.user.id });
+        const insight = await SimpleInsightsService.generateInsightForUser(
+          req.user.id,
+          memoryCount,
+          memory._id
+        );
+        
+        res.status(201).json({
+          memory,
+          insight: insight || null,
+          shouldShowInsight: !!insight,
+          memoryCount
+        });
+      } catch (insightError) {
+        console.error('Insight generation failed:', insightError);
+        // Don't fail memory creation if insight generation fails
+        res.status(201).json({ 
+          memory,
+          insight: null,
+          shouldShowInsight: false,
+          memoryCount: await Memory.countDocuments({ userId: req.user.id })
+        });
+      }
+
     } catch (error) {
       console.error('Memory creation error:', error);
       logMemoryOperation(req, 'create', false, error.message);
@@ -232,9 +259,9 @@ router.get('/public/all', getPublicMemories);
 // Get single memory (no rate limiting - read operation)
 router.get('/:id', getMemoryById);
 
-// FIXED: Update memory with rate limiting and image validation
+// Update memory with rate limiting and image validation
 router.put('/:id', 
-  apiLimiter, // Use API limiter instead of memory limiter for updates (less restrictive)
+  apiLimiter,
   validateMemoryImages,
   async (req, res, next) => {
     try {

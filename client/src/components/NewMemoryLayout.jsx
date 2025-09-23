@@ -18,41 +18,6 @@ export default function NewMemoryLayout({
 }) {
   return (
     <div className="space-y-6">
-      {/* Memory Title - Full width row */}
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-3"></div>
-          <div className="lg:col-span-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Memory Title *
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Give your memory a meaningful title..."
-            className={`w-full px-4 py-3 text-lg font-medium border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 ${
-              errors.title ? 'border-red-500 ring-red-200' : ''
-            }`}
-            maxLength={100}
-          />
-          {errors.title && (
-            <p className="text-red-600 text-sm mt-1">{errors.title}</p>
-          )}
-          <div className="flex justify-between items-center mt-2">
-            <p className="text-xs text-gray-500">
-              This helps organize and identify your memories
-            </p>
-            <span className="text-xs text-gray-400">
-              {title.length}/100
-            </span>
-          </div>
-        </div>
-        </div>
-        <div className="lg:col-span-3"></div>
-        </div>
-      </div>
       {/* Three column layout */}
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -69,6 +34,7 @@ export default function NewMemoryLayout({
                     checked={isPublic}
                     onChange={(e) => setIsPublic(e.target.checked)}
                     className="sr-only"
+                    disabled={isSubmitting}
                   />
                   <div className={`w-12 h-6 rounded-full transition-colors duration-200 ${
                     isPublic ? 'bg-purple-600' : 'bg-gray-300'
@@ -103,19 +69,22 @@ export default function NewMemoryLayout({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Memory Date *
               </label>
-              <DatePicker
-                selected={memoryDate}
-                onChange={setMemoryDate}
-                dateFormat="MMMM d, yyyy"
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.memoryDate ? 'border-red-500' : ''
-                }`}
-                maxDate={new Date()}
-                placeholderText="When did this memory happen?"
-                showMonthDropdown
-                showYearDropdown
-                dropdownMode="select"
-              />
+              <div className="memory-date">
+                <DatePicker
+                  selected={memoryDate}
+                  onChange={setMemoryDate}
+                  dateFormat="MMMM d, yyyy"
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                    errors.memoryDate ? 'border-red-500' : ''
+                  }`}
+                  maxDate={new Date()}
+                  placeholderText="When did this memory happen?"
+                  showMonthDropdown
+                  showYearDropdown
+                  dropdownMode="select"
+                  disabled={isSubmitting}
+                />
+              </div>
               {errors.memoryDate && (
                 <p className="text-red-600 text-sm mt-1">{errors.memoryDate}</p>
               )}
@@ -164,11 +133,13 @@ export default function NewMemoryLayout({
           <div className="lg:col-span-3 space-y-6">
             {/* Color Picker */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <ColorSelect
-                color={color}
-                setColor={setColor}
-                error={errors.color}
-              />
+              <div className="color-picker">
+                <ColorSelect
+                  color={color}
+                  setColor={setColor}
+                  error={errors.color}
+                />
+              </div>
               <p className="text-xs text-gray-500 mt-2">
                 Choose a color that represents this memory
               </p>
@@ -197,6 +168,19 @@ export default function NewMemoryLayout({
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Tutorial Helper */}
+            <div className="bg-purple-50 rounded-xl border border-purple-200 p-4">
+              <h4 className="text-sm font-medium text-purple-900 mb-2">
+                💡 Pro Tips
+              </h4>
+              <ul className="text-xs text-purple-700 space-y-1">
+                <li>• Use the mood block to track your emotions</li>
+                <li>• Add images to make memories more vivid</li>
+                <li>• Create todo lists for future goals</li>
+                <li>• Rich content helps generate better insights</li>
+              </ul>
             </div>
           </div>
         </div>

@@ -22,9 +22,10 @@ const EmotionInput = forwardRef(function EmotionInput({
         onFocus={onInputFocus}
         onKeyDown={onKeyDown}
         placeholder={selectedEmotion ? '' : placeholder}
-        className={`w-full px-4 py-3 pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm ${
+        className={`emotion-selector w-full px-4 py-3 pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm ${
           error ? 'border-red-500 ring-red-200' : ''
         } ${selectedEmotion ? 'text-lg' : ''}`}
+        data-tutorial="emotion-selector"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         role="combobox"

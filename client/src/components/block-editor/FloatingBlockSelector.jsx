@@ -194,11 +194,12 @@ export default function FloatingBlockSelector({
           setIsOpen(!isOpen);
         }}
         type="button"
-        className={`w-14 h-14 rounded-full shadow-lg border-2 transition-all duration-200 ${
+        className={`floating-block-selector w-14 h-14 rounded-full shadow-lg border-2 transition-all duration-200 ${
           isOpen 
             ? 'bg-purple-600 border-purple-600 text-white rotate-45' 
             : 'bg-white border-purple-200 text-purple-600 hover:border-purple-400 hover:shadow-xl'
         }`}
+        data-tutorial="floating-block-selector"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         title={isOpen ? 'Close block selector' : 'Add more blocks'}
