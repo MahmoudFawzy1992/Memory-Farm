@@ -8,8 +8,8 @@ if (!EMAIL_FROM || !EMAIL_PASS) {
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465, 
-  secure: true, 
+  port: 587,
+  secure: false, // STARTTLS
   auth: {
     user: EMAIL_FROM,
     pass: EMAIL_PASS,
