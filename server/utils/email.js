@@ -7,11 +7,19 @@ if (!EMAIL_FROM || !EMAIL_PASS) {
 }
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465, 
+  secure: true, 
   auth: {
     user: EMAIL_FROM,
     pass: EMAIL_PASS,
   },
+  tls: {
+    rejectUnauthorized: false, // helps in Railway environments
+  },
+  connectionTimeout: 60000, // 60s
+  greetingTimeout: 30000,   // 30s
+  socketTimeout: 60000,     // 60s
 });
 
 async function sendEmail({ to, subject, html }) {
