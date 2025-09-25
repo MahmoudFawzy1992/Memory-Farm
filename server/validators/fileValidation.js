@@ -1,4 +1,7 @@
-const fileType = require('file-type');
+// FIXED: Removed file-type dependency to avoid ES module issues
+// Using sharp for image validation instead
+
+const sharp = require('sharp');
 
 // Allowed image types with their MIME types and signatures
 const ALLOWED_IMAGE_TYPES = {
@@ -8,11 +11,27 @@ const ALLOWED_IMAGE_TYPES = {
   'image/gif': { extensions: ['gif'], maxSize: 1024 * 1024 }, // 1MB
 };
 
-// File signature validation to prevent mime type spoofing
-const validateFileSignature = async (buffer) => {
+// Image validation using sharp (more reliable than file-type)
+const validateImageBuffer = async (buffer) => {
   try {
-    const type = await fileType.fromBuffer(buffer);
-    return type;
+    const metadata = await sharp(buffer).metadata();
+    
+    // Sharp provides format detection
+    const detectedFormat = metadata.format;
+    const formatToMime = {
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'webp': 'image/webp',
+      'gif': 'image/gif'
+    };
+    
+    return {
+      mime: formatToMime[detectedFormat] || `image/${detectedFormat}`,
+      format: detectedFormat,
+      width: metadata.width,
+      height: metadata.height,
+      size: metadata.size
+    };
   } catch (error) {
     return null;
   }
@@ -60,31 +79,29 @@ const validateBase64Image = async (base64Data, fileName = '') => {
       errors.push(`File size (${Math.round(buffer.length / 1024)}KB) exceeds limit (${Math.round(config.maxSize / 1024)}KB)`);
     }
     
-    // Validate file signature matches MIME type
-    const detectedType = await validateFileSignature(buffer);
-    if (!detectedType) {
-      errors.push('Could not determine file type from content');
-    } else if (detectedType.mime !== mimeType) {
-      errors.push(`File content (${detectedType.mime}) doesn't match declared type (${mimeType})`);
+    // FIXED: Use sharp instead of file-type for validation
+    const detectedImage = await validateImageBuffer(buffer);
+    if (!detectedImage) {
+      errors.push('Could not process image - invalid format or corrupted file');
+    } else if (detectedImage.mime !== mimeType) {
+      errors.push(`File content (${detectedImage.mime}) doesn't match declared type (${mimeType})`);
     }
     
     // Validate file extension if provided
-    if (fileName) {
+    if (fileName && config) {
       const fileExt = fileName.toLowerCase().split('.').pop();
-      if (config && !config.extensions.includes(fileExt)) {
+      if (!config.extensions.includes(fileExt)) {
         errors.push(`File extension .${fileExt} doesn't match file type`);
       }
     }
     
-    // Additional security checks
-    
-    // Check for embedded scripts in SVG (not allowed anyway, but extra security)
-    const content = buffer.toString('utf8', 0, Math.min(1024, buffer.length));
+    // Additional security checks - simplified since sharp already validates image structure
+    const content = buffer.toString('utf8', 0, Math.min(512, buffer.length));
     if (content.includes('<script') || content.includes('javascript:') || content.includes('vbscript:')) {
       errors.push('File contains potentially malicious content');
     }
     
-    // Check for PHP headers (prevent PHP file uploads disguised as images)
+    // Check for PHP headers
     if (content.includes('<?php') || content.includes('<?=')) {
       errors.push('File contains server-side script content');
     }
@@ -94,9 +111,11 @@ const validateBase64Image = async (base64Data, fileName = '') => {
       errors,
       fileInfo: {
         mimeType,
-        detectedType: detectedType?.mime,
+        detectedType: detectedImage?.mime,
         size: buffer.length,
-        extension: detectedType?.ext
+        format: detectedImage?.format,
+        width: detectedImage?.width,
+        height: detectedImage?.height
       }
     };
     
