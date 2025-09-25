@@ -8,6 +8,7 @@
     "cleanup:orphaned": "node scripts/cleanup-orphaned-memories.js"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "bcryptjs": "^3.0.2",
     "canvas": "^3.2.0",
     "cookie-parser": "^1.4.7",
