@@ -5,9 +5,9 @@ const sendEmail = require('../utils/email');
 
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production', // 🆕 Dynamic based on environment
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 🆕 Dynamic
-  maxAge: 7 * 24 * 60 * 60 * 1000,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
 exports.signup = async (req, res) => {
@@ -25,17 +25,15 @@ exports.signup = async (req, res) => {
     user.emailVerifyToken = token;
     await user.save();
 
-const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const link = `${frontendUrl}/verify-email?token=${token}&id=${user._id}`;
 
-const link = `${frontendUrl}/verify-email?token=${token}&id=${user._id}`;
+    await sendEmail({
+      to: user.email,
+      subject: "Verify Your Email",
+      html: `<p>Click to verify your email: <a href="${link}">${link}</a></p>`,
+    });
 
-await sendEmail({
-  to: user.email,
-  subject: "Verify Your Email",
-  html: `<p>Click to verify your email: <a href="${link}">${link}</a></p>`,
-});
-
-// ✅ Don't log the user in here — only respond
     res.status(201).json({ message: "Signup successful. Please verify your email." });
   } catch (err) {
     console.error("Signup error:", err);
@@ -66,16 +64,21 @@ exports.login = async (req, res) => {
 
     const token = createToken({ id: user._id, email: user.email });
 
-    res
-      .cookie('token', token, cookieOptions)
-      .status(200)
-      .json({
-        user: {
-          id: user._id,
-          displayName: user.displayName,
-          email: user.email,
-        },
-      });
+    // Set httpOnly cookie as primary auth method
+    res.cookie('token', token, cookieOptions);
+
+    // Also return token in response body as fallback for incognito mode
+    res.status(200).json({
+      user: {
+        id: user._id,
+        displayName: user.displayName,
+        email: user.email,
+      },
+      // Include token for incognito/localStorage fallback
+      token: token,
+      // Flag to indicate hybrid auth support
+      authMethod: 'hybrid'
+    });
 
   } catch (err) {
     console.error("Login error:", err);
@@ -83,16 +86,19 @@ exports.login = async (req, res) => {
   }
 };
 
-
 exports.logout = (req, res) => {
-    res.clearCookie('token', {
+  // Clear cookie
+  res.clearCookie('token', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   });
 
-  res.status(200).json({ message: 'Logged out' });
-
+  // Return success - client will handle localStorage cleanup
+  res.status(200).json({ 
+    message: 'Logged out',
+    clearStorage: true // Signal to client to clear localStorage
+  });
 };
 
 exports.verifyEmail = async (req, res) => {
