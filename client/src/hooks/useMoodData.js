@@ -3,9 +3,8 @@ import {
   getCalendarSummary, 
   getMoodDistribution, 
   getPublicTrend,
-  getMemoriesByDate 
+  getMemoriesForDateRange // NEW: Single request for all month memories
 } from "../services/analyticsService";
-import { startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 
 export const useMoodData = (month) => {
   const [summary, setSummary] = useState([]);
@@ -21,13 +20,13 @@ export const useMoodData = (month) => {
       setError(null);
       
       try {
-        const summaryData = await getCalendarSummary(month);
-        
-        const distData = await getMoodDistribution(month);
-        
-        const globalData = await getPublicTrend(month, "day");
-        
-        const monthMems = await getMemoriesForMonth(month);
+        // All these requests run in parallel
+        const [summaryData, distData, globalData, monthMems] = await Promise.all([
+          getCalendarSummary(month),
+          getMoodDistribution(month),
+          getPublicTrend(month, "day"),
+          getMemoriesForDateRange(month) // NEW: Single request for all memories
+        ]);
 
         setSummary(summaryData);
         setDistribution(distData);
@@ -44,34 +43,6 @@ export const useMoodData = (month) => {
 
     loadData();
   }, [month]);
-
-  const getMemoriesForMonth = async (monthDate) => {
-    try {
-      const days = eachDayOfInterval({ 
-        start: startOfMonth(monthDate), 
-        end: endOfMonth(monthDate) 
-      });
-      
-      const allMemories = [];
-      for (const day of days) {
-        try {
-          const dayMems = await getMemoriesByDate(day);
-          allMemories.push(...dayMems);
-        } catch (dayError) {
-          console.warn(`Failed to get memories for ${day}:`, dayError);
-        }
-      }
-      
-      return allMemories.sort((a, b) => {
-        const dateA = new Date(a.memoryDate || a.createdAt);
-        const dateB = new Date(b.memoryDate || b.createdAt);
-        return dateB - dateA;
-      });
-    } catch (error) {
-      console.error("Failed to get month memories:", error);
-      return [];
-    }
-  };
 
   return {
     summary,

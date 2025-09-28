@@ -80,11 +80,11 @@ exports.getMemoriesByDate = async (req, res) => {
         ],
       },
     })
-    .select('title content emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic createdAt updatedAt userId') // FIXED: Added title, content, userId
-    .populate('userId', 'displayName') // FIXED: Populate user data
+    .select('title content emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic createdAt updatedAt userId')
+    .populate('userId', 'displayName')
     .sort({ createdAt: -1 });
 
-    // FIXED: Add preview text and metadata like other endpoints
+    // Add preview text and metadata
     const enrichedMemories = memories.map(memory => {
       const obj = memory.toObject();
       return {
@@ -102,6 +102,54 @@ exports.getMemoriesByDate = async (req, res) => {
   } catch (err) {
     console.error('getMemoriesByDate error:', err);
     res.status(500).json({ error: 'Failed to load memories for date' });
+  }
+};
+
+// NEW: Get all memories for a date range (optimized for month view)
+exports.getMemoriesForDateRange = async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const fromDate = toDateOrNull(from) || startOfDayUTC(new Date());
+    const toDateRaw = toDateOrNull(to) || fromDate;
+    const fromUTC = startOfDayUTC(fromDate);
+    const toUTCExclusive = addDaysUTC(startOfDayUTC(toDateRaw), 1);
+
+    const memories = await Memory.find({
+      userId: new mongoose.Types.ObjectId(req.user.id),
+      $expr: {
+        $and: [
+          { $gte: [memoryDateExpr, fromUTC] },
+          { $lt: [memoryDateExpr, toUTCExclusive] },
+        ],
+      },
+    })
+    .select('title content emotion color memoryDate extractedText blockCount hasImages contentComplexity emotionFamily isPublic createdAt updatedAt userId')
+    .populate('userId', 'displayName')
+    .sort({ createdAt: -1 });
+
+    // Add preview text and metadata like other endpoints
+    const enrichedMemories = memories.map(memory => {
+      const obj = memory.toObject();
+      return {
+        ...obj,
+        previewText: memory.getPreviewText ? memory.getPreviewText(100) : obj.extractedText?.substring(0, 100) || 'No text content',
+        blockTypes: memory.getBlockTypes ? memory.getBlockTypes() : getBlockTypesFromContent(obj.content),
+        wordCount: obj.extractedText ? obj.extractedText.split(' ').length : 0,
+        hasChecklistItems: obj.content ? obj.content.some(b => b.type === 'checkListItem') : false,
+        hasHeadings: obj.content ? obj.content.some(b => b.type === 'heading') : false,
+        hasMoodBlocks: obj.content ? obj.content.some(b => b.type === 'mood') : false
+      };
+    });
+
+    res.json({ 
+      from: fromUTC, 
+      to: toUTCExclusive, 
+      memories: enrichedMemories,
+      count: enrichedMemories.length 
+    });
+  } catch (err) {
+    console.error('getMemoriesForDateRange error:', err);
+    res.status(500).json({ error: 'Failed to load memories for date range' });
   }
 };
 
@@ -285,6 +333,7 @@ function getBlockTypesFromContent(content) {
 module.exports = {
   getCalendarSummary: exports.getCalendarSummary,
   getMemoriesByDate: exports.getMemoriesByDate,
+  getMemoriesForDateRange: exports.getMemoriesForDateRange, // NEW
   getMoodDistribution: exports.getMoodDistribution,
   getMoodTrend: exports.getMoodTrend,
   searchMemories: exports.searchMemories

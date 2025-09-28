@@ -13,6 +13,7 @@ const {
   getCalendarSummary,
   getMemoriesByDate,
   getMoodDistribution,
+  getMemoriesForDateRange,
   getMoodTrend,
 } = require('../controllers/memoryController');
 const {
@@ -140,6 +141,7 @@ router.get('/calendar/summary', validateCalendarSummary, handleValidationErrors,
 router.get('/calendar/by-date', validateByDate, handleValidationErrors, getMemoriesByDate);
 router.get('/analytics/mood-distribution', validateMoodDistribution, handleValidationErrors, getMoodDistribution);
 router.get('/analytics/mood-trend', validateMoodTrend, handleValidationErrors, getMoodTrend);
+router.get('/calendar/date-range', validateCalendarSummary, handleValidationErrors, getMemoriesForDateRange);
 
 // Public analytics (no rate limiting - read operations)
 router.get('/analytics/public/distribution', validateMoodDistribution, handleValidationErrors, getPublicDistribution);

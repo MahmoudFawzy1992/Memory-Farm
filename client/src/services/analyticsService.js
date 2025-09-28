@@ -19,6 +19,13 @@ export const getMemoriesByDate = async (dateObj) => {
   return data.memories || [];
 };
 
+// NEW: Get all memories for a month in one request
+export const getMemoriesForDateRange = async (monthDate) => {
+  const { from, to } = monthRange(monthDate);
+  const { data } = await axios.get("/memory/calendar/date-range", { params: { from, to } });
+  return data.memories || [];
+};
+
 export const getMoodDistribution = async (monthDate) => {
   const { from, to } = monthRange(monthDate);
   const { data } = await axios.get("/memory/analytics/mood-distribution", { params: { from, to } });

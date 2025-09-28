@@ -7,6 +7,7 @@ const {
   getMemoriesByDate,
   getMoodDistribution,
   getMoodTrend,
+  getMemoriesForDateRange,
 } = require('./memory/analyticsController');
 
 module.exports = {
@@ -17,4 +18,5 @@ module.exports = {
   getMemoriesByDate,
   getMoodDistribution,
   getMoodTrend,
+  getMemoriesForDateRange,
 };
