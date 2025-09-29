@@ -1,13 +1,12 @@
-// Active filter indicators with individual chip removal
+// Location: client/src/components/filters/FilterChips.jsx
+// Active filter indicators showing individual emotions and other filters
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { useFilterContext } from '../../context/FilterContext';
 import { emotionFamilies } from '../../constants/emotions';
 import { INTENSITY_LEVELS, getFilterSummary } from '../../utils/filterUtils';
 
-/**
- * Individual filter chip component
- */
 const FilterChip = ({ 
   label, 
   onRemove, 
@@ -32,6 +31,7 @@ const FilterChip = ({
         onClick={onRemove}
         className="p-0.5 hover:bg-gray-100 rounded-full transition-colors"
         title="Remove filter"
+        aria-label={`Remove ${label} filter`}
       >
         <svg 
           className="w-3 h-3 text-gray-400 hover:text-gray-600" 
@@ -46,10 +46,7 @@ const FilterChip = ({
   );
 };
 
-/**
- * Compact filter summary badge
- */
-const FilterSummaryBadge = ({ activeCount, summary, onClearAll, className = '' }) => {
+const FilterSummaryBadge = ({ activeCount, onClearAll, className = '' }) => {
   if (activeCount === 0) return null;
   
   return (
@@ -76,30 +73,40 @@ const FilterSummaryBadge = ({ activeCount, summary, onClearAll, className = '' }
   );
 };
 
-/**
- * Main filter chips component
- * Shows active filters as removable chips
- */
+// Helper to get emotion family color
+const getEmotionFamilyColor = (emotionLabel) => {
+  for (const family of Object.values(emotionFamilies)) {
+    if (family.emotions.some(e => e.label === emotionLabel)) {
+      return family.color;
+    }
+  }
+  return '#8B5CF6';
+};
+
+// Helper to get emotion emoji
+const getEmotionEmoji = (emotionLabel) => {
+  for (const family of Object.values(emotionFamilies)) {
+    const emotion = family.emotions.find(e => e.label === emotionLabel);
+    if (emotion) return emotion.emoji;
+  }
+  return '🎭';
+};
+
 export default function FilterChips({ 
-  variant = 'detailed', // 'detailed' | 'compact'
+  variant = 'detailed',
   showClearAll = true,
   className = '' 
 }) {
   const {
-    families: selectedFamilies,
+    emotions: selectedEmotions,
     intensities: selectedIntensities,
     dateRange,
-    toggleEmotionFamily,
+    toggleEmotion,
     toggleIntensity,
     clearDateRange,
-    resetFilters,
-    getCurrentFilters
+    resetFilters
   } = useFilterContext();
   
-  const filters = getCurrentFilters();
-  const { activeCount, summary } = getFilterSummary(filters);
-  
-  // Helper to format date for display
   const formatDateChip = (startDate, endDate) => {
     if (!startDate && !endDate) return '';
     
@@ -107,7 +114,6 @@ export default function FilterChips({
       const start = format(new Date(startDate), 'MMM d');
       const end = format(new Date(endDate), 'MMM d, yyyy');
       
-      // Same date
       if (format(new Date(startDate), 'yyyy-MM-dd') === format(new Date(endDate), 'yyyy-MM-dd')) {
         return format(new Date(startDate), 'MMM d, yyyy');
       }
@@ -118,35 +124,25 @@ export default function FilterChips({
     return format(new Date(startDate || endDate), 'MMM d, yyyy');
   };
   
-  // Compact variant - just summary badge
+  const activeCount = selectedEmotions.length + selectedIntensities.length + (dateRange.startDate || dateRange.endDate ? 1 : 0);
+  
   if (variant === 'compact') {
     return (
       <div className={className}>
         <FilterSummaryBadge
           activeCount={activeCount}
-          summary={summary}
           onClearAll={resetFilters}
         />
       </div>
     );
   }
   
-  // No active filters
   if (activeCount === 0) {
-    return (
-      <div className={`text-center py-4 ${className}`}>
-        <div className="text-gray-400 text-sm">
-          <span className="text-base mb-2 block">🔍</span>
-          No filters applied - showing all memories
-        </div>
-      </div>
-    );
+    return null;
   }
   
-  // Detailed variant - individual chips
   return (
-    <div className={`space-y-4 ${className}`}>
-      {/* Header with clear all */}
+    <div className={`space-y-3 ${className}`}>
       {showClearAll && (
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-medium text-gray-700">
@@ -162,21 +158,20 @@ export default function FilterChips({
         </div>
       )}
       
-      {/* Filter chips container */}
       <div className="flex flex-wrap gap-2">
         <AnimatePresence>
-          {/* Emotion family chips */}
-          {selectedFamilies.map(familyKey => {
-            const family = emotionFamilies[familyKey];
-            if (!family) return null;
+          {/* Individual emotion chips */}
+          {selectedEmotions.map(emotionLabel => {
+            const color = getEmotionFamilyColor(emotionLabel);
+            const emoji = getEmotionEmoji(emotionLabel);
             
             return (
               <FilterChip
-                key={`family-${familyKey}`}
-                label={family.label}
-                onRemove={() => toggleEmotionFamily(familyKey)}
-                color={family.color}
-                icon="🎭"
+                key={`emotion-${emotionLabel}`}
+                label={emotionLabel}
+                onRemove={() => toggleEmotion(emotionLabel)}
+                color={color}
+                icon={emoji}
               />
             );
           })}
@@ -209,19 +204,6 @@ export default function FilterChips({
           )}
         </AnimatePresence>
       </div>
-      
-      {/* Filter summary text */}
-      {summary.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="p-3 bg-gray-50 rounded-lg"
-        >
-          <p className="text-sm text-gray-600">
-            <strong>Current filters:</strong> {summary.join(' • ')}
-          </p>
-        </motion.div>
-      )}
     </div>
   );
 }

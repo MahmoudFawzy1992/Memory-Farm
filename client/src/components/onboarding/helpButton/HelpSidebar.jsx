@@ -28,28 +28,29 @@ export default function HelpSidebar({
             className="fixed inset-0 bg-black bg-opacity-25 z-30"
           />
 
-          {/* Sidebar */}
+          {/* Sidebar - Responsive width: full on mobile, fixed on desktop */}
           <motion.div
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 bottom-0 w-96 bg-white shadow-2xl z-40 flex flex-col"
+            className="fixed left-0 top-0 bottom-0 w-full sm:w-96 bg-white shadow-2xl z-40 flex flex-col pt-16"
           >
             {/* Header */}
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Help & FAQ</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Help & FAQ</h2>
                 <button
                   onClick={onClose}
-                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                  aria-label="Close help sidebar"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 Find answers to common questions
               </p>
             </div>

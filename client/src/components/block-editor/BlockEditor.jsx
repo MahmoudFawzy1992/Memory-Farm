@@ -1,3 +1,4 @@
+// Location: client/src/components/block-editor/BlockEditor.jsx
 import { useState, useCallback } from 'react';
 import { 
   DndContext, 
@@ -6,9 +7,9 @@ import {
   KeyboardSensor, 
   PointerSensor, 
   useSensor, 
-  useSensors 
+  useSensors,
+  TouchSensor
 } from '@dnd-kit/core';
-import { TouchSensor } from '@dnd-kit/core';
 import { 
   SortableContext, 
   sortableKeyboardCoordinates, 
@@ -19,9 +20,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import FloatingBlockSelector from './FloatingBlockSelector';
 import SortableBlockWrapper from './SortableBlockWrapper';
 import DropZone from './DropZone';
-import { createBlock, validateBlock } from './BlockTypeDefinitions';
+import { createBlock } from './BlockTypeDefinitions';
 
-// Empty state component
 const EmptyState = ({ placeholder }) => (
   <motion.div
     initial={{ opacity: 0 }}
@@ -46,15 +46,15 @@ export default function BlockEditor({
   const [activeId, setActiveId] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
-// Configure drag sensors with touch support
+  // Improved touch sensor configuration for better mobile support
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
     }),
     useSensor(TouchSensor, {
       activationConstraint: { 
-        delay: 500, 
-        tolerance: 5 
+        delay: 250,
+        tolerance: 8
       },
     }),
     useSensor(KeyboardSensor, {
@@ -62,18 +62,35 @@ export default function BlockEditor({
     })
   );
 
-
-  // Get sortable blocks (excluding first mood block)
   const sortableBlocks = blocks.filter((block, index) => 
     !(block.type === 'mood' && index === 0)
   );
 
-  // Get the first mood block if it exists
   const firstMoodBlock = blocks.find((block, index) => 
     block.type === 'mood' && index === 0
   );
 
-  // Block management handlers
+  // Move block up (for mobile arrow buttons)
+  const handleMoveUp = useCallback((blockId) => {
+    const currentIndex = blocks.findIndex(b => b.id === blockId);
+    if (currentIndex <= 0) return;
+    
+    // Don't allow moving above the first mood block
+    if (firstMoodBlock && currentIndex === 1) return;
+    
+    const newBlocks = arrayMove(blocks, currentIndex, currentIndex - 1);
+    onChange(newBlocks);
+  }, [blocks, onChange, firstMoodBlock]);
+
+  // Move block down (for mobile arrow buttons)
+  const handleMoveDown = useCallback((blockId) => {
+    const currentIndex = blocks.findIndex(b => b.id === blockId);
+    if (currentIndex === -1 || currentIndex >= blocks.length - 1) return;
+    
+    const newBlocks = arrayMove(blocks, currentIndex, currentIndex + 1);
+    onChange(newBlocks);
+  }, [blocks, onChange]);
+
   const handleAddBlock = useCallback((newBlock) => {
     if (blocks.length >= maxBlocks) {
       console.warn(`Maximum ${maxBlocks} blocks allowed`);
@@ -84,7 +101,6 @@ export default function BlockEditor({
   }, [blocks, maxBlocks, onChange]);
 
   const handleDeleteBlock = useCallback((blockId) => {
-    // Prevent deletion of first mood block
     const blockToDelete = blocks.find(block => block.id === blockId);
     if (blockToDelete?.type === 'mood' && blocks.indexOf(blockToDelete) === 0) {
       return;
@@ -93,7 +109,6 @@ export default function BlockEditor({
     onChange(blocks.filter(block => block.id !== blockId));
   }, [blocks, onChange]);
 
-  // Drag handlers
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
   };
@@ -124,7 +139,6 @@ export default function BlockEditor({
       const overIndex = sortableBlocks.findIndex(block => block.id === over.id);
       
       if (overIndex >= 0) {
-        // Insert at specific position (accounting for mood block at index 0)
         const newBlocks = [...blocks];
         newBlocks.splice(overIndex + 1, 0, newBlock);
         onChange(newBlocks);
@@ -134,14 +148,12 @@ export default function BlockEditor({
       return;
     }
 
-    // Handle reordering of sortable blocks only
     const activeIndex = sortableBlocks.findIndex(block => block.id === active.id);
     const overIndex = sortableBlocks.findIndex(block => block.id === over.id);
 
     if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
       const reorderedSortableBlocks = arrayMove(sortableBlocks, activeIndex, overIndex);
       
-      // Reconstruct full blocks array with mood block at start
       const newBlocks = firstMoodBlock 
         ? [firstMoodBlock, ...reorderedSortableBlocks]
         : reorderedSortableBlocks;
@@ -174,12 +186,15 @@ export default function BlockEditor({
                       const newBlocks = blocks.map(b => b.id === updatedBlock.id ? updatedBlock : b);
                       onChange(newBlocks);
                     }}
+                    onMoveUp={handleMoveUp}
+                    onMoveDown={handleMoveDown}
+                    canMoveUp={false}
+                    canMoveDown={false}
                     isDragging={false}
                   />
                 </div>
               )}
 
-              {/* Separator and hint */}
               {firstMoodBlock && (
                 <div className="border-t border-gray-200 pt-4 mb-4">
                   <p className="text-sm text-gray-500 text-center">
@@ -195,31 +210,40 @@ export default function BlockEditor({
                   strategy={verticalListSortingStrategy}
                 >
                   <AnimatePresence>
-                    {sortableBlocks.map((block, index) => (
-                      <div key={block.id}>
-                        {dragOverIndex === index + 1 && <DropZone isActive={true} position="above" />}
-                        
-                        <SortableBlockWrapper
-                          block={block}
-                          onDelete={handleDeleteBlock}
-                          onChange={(updatedBlock) => {
-                            const newBlocks = blocks.map(b => b.id === updatedBlock.id ? updatedBlock : b);
-                            onChange(newBlocks);
-                          }}
-                          isDragging={activeId === block.id}
-                        />
+                    {sortableBlocks.map((block, index) => {
+                      const actualIndex = blocks.findIndex(b => b.id === block.id);
+                      const canMoveUp = actualIndex > (firstMoodBlock ? 1 : 0);
+                      const canMoveDown = actualIndex < blocks.length - 1;
+                      
+                      return (
+                        <div key={block.id}>
+                          {dragOverIndex === index + 1 && <DropZone isActive={true} position="above" />}
+                          
+                          <SortableBlockWrapper
+                            block={block}
+                            onDelete={handleDeleteBlock}
+                            onChange={(updatedBlock) => {
+                              const newBlocks = blocks.map(b => b.id === updatedBlock.id ? updatedBlock : b);
+                              onChange(newBlocks);
+                            }}
+                            onMoveUp={handleMoveUp}
+                            onMoveDown={handleMoveDown}
+                            canMoveUp={canMoveUp}
+                            canMoveDown={canMoveDown}
+                            isDragging={activeId === block.id}
+                          />
 
-                        {index === sortableBlocks.length - 1 && 
-                         dragOverIndex === sortableBlocks.length + 1 && (
-                          <DropZone isActive={true} position="below" />
-                        )}
-                      </div>
-                    ))}
+                          {index === sortableBlocks.length - 1 && 
+                           dragOverIndex === sortableBlocks.length + 1 && (
+                            <DropZone isActive={true} position="below" />
+                          )}
+                        </div>
+                      );
+                    })}
                   </AnimatePresence>
                 </SortableContext>
               )}
 
-              {/* Drop zone for empty sortable area */}
               {sortableBlocks.length === 0 && (
                 <div className="py-8">
                   <DropZone isActive={false} />

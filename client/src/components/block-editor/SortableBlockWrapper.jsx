@@ -1,3 +1,4 @@
+// Location: client/src/components/block-editor/SortableBlockWrapper.jsx
 import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -10,6 +11,10 @@ export default function SortableBlockWrapper({
   children, 
   onDelete, 
   onChange,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
   isDragging = false 
 }) {
   const [showControls, setShowControls] = useState(false);
@@ -24,7 +29,7 @@ export default function SortableBlockWrapper({
     isDragging: sortableIsDragging,
   } = useSortable({ 
     id: block.id,
-    disabled: isFirstMoodBlock // Disable sorting for first mood block
+    disabled: isFirstMoodBlock
   });
 
   const style = {
@@ -55,6 +60,10 @@ export default function SortableBlockWrapper({
       <BlockControls
         show={showControls}
         onDelete={handleDelete}
+        onMoveUp={() => onMoveUp(block.id)}
+        onMoveDown={() => onMoveDown(block.id)}
+        canMoveUp={canMoveUp}
+        canMoveDown={canMoveDown}
         isDragging={sortableIsDragging}
         dragHandleProps={{ ...attributes, ...listeners }}
         blockType={block.type}

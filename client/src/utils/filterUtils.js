@@ -1,33 +1,21 @@
+// Location: client/src/utils/filterUtils.js
 // Filter utility functions for enhanced memory filtering system
 import { emotionFamilies } from '../constants/emotions';
 import { isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
-/**
- * Intensity level definitions for mood filtering
- */
 export const INTENSITY_LEVELS = {
   LOW: { min: 1, max: 3, label: 'Low', color: '#EF4444' },
   MEDIUM: { min: 4, max: 6, label: 'Medium', color: '#F59E0B' },
   HIGH: { min: 7, max: 10, label: 'High', color: '#10B981' }
 };
 
-/**
- * Get intensity level from numeric value
- * @param {number} intensity - Intensity value (1-10)
- * @returns {string} - Level key (LOW, MEDIUM, HIGH)
- */
 export const getIntensityLevel = (intensity) => {
   if (intensity >= 1 && intensity <= 3) return 'LOW';
   if (intensity >= 4 && intensity <= 6) return 'MEDIUM';
   if (intensity >= 7 && intensity <= 10) return 'HIGH';
-  return 'MEDIUM'; // Default fallback
+  return 'MEDIUM';
 };
 
-/**
- * Get emotion family key from emotion text
- * @param {string} emotionText - Full emotion text with emoji
- * @returns {string} - Family key or null
- */
 export const getEmotionFamilyFromText = (emotionText) => {
   if (!emotionText) return null;
   
@@ -43,11 +31,6 @@ export const getEmotionFamilyFromText = (emotionText) => {
   return null;
 };
 
-/**
- * Extract emotion data from memory blocks
- * @param {Array} blocks - Memory content blocks
- * @returns {Object} - { emotion, intensity, family }
- */
 export const extractEmotionFromBlocks = (blocks) => {
   if (!Array.isArray(blocks)) return { emotion: '', intensity: 5, family: null };
   
@@ -62,37 +45,43 @@ export const extractEmotionFromBlocks = (blocks) => {
 };
 
 /**
- * Check if memory matches emotion family filter
- * @param {Object} memory - Memory object
- * @param {Array} selectedFamilies - Array of selected family keys
- * @returns {boolean}
+ * Check if memory matches emotion filter (supports both families and individual emotions)
  */
-export const matchesEmotionFilter = (memory, selectedFamilies) => {
-  if (!selectedFamilies || selectedFamilies.length === 0) return true;
-  
-  // Try to get family from memory.emotionFamily first (backend processed)
-  if (memory.emotionFamily && selectedFamilies.includes(memory.emotionFamily)) {
+export const matchesEmotionFilter = (memory, selectedFamilies, selectedEmotions = []) => {
+  // No filter applied
+  if ((!selectedFamilies || selectedFamilies.length === 0) && 
+      (!selectedEmotions || selectedEmotions.length === 0)) {
     return true;
   }
   
-  // Fallback: extract from blocks or emotion field
+  // Extract emotion data from memory
   const emotionData = memory.content 
     ? extractEmotionFromBlocks(memory.content)
-    : { family: getEmotionFamilyFromText(memory.emotion) };
+    : { 
+        emotion: memory.emotion ? memory.emotion.replace(/^\p{Emoji}+/u, '').trim() : '',
+        family: memory.emotionFamily || getEmotionFamilyFromText(memory.emotion) 
+      };
   
-  return emotionData.family && selectedFamilies.includes(emotionData.family);
+  // Check individual emotion match
+  if (selectedEmotions && selectedEmotions.length > 0) {
+    const cleanMemoryEmotion = emotionData.emotion.toLowerCase();
+    const hasEmotionMatch = selectedEmotions.some(e => e.toLowerCase() === cleanMemoryEmotion);
+    if (hasEmotionMatch) return true;
+  }
+  
+  // Check family match (only if no individual emotions matched)
+  if (selectedFamilies && selectedFamilies.length > 0) {
+    if (emotionData.family && selectedFamilies.includes(emotionData.family)) {
+      return true;
+    }
+  }
+  
+  return false;
 };
 
-/**
- * Check if memory matches intensity filter
- * @param {Object} memory - Memory object
- * @param {Array} selectedIntensities - Array of selected intensity levels
- * @returns {boolean}
- */
 export const matchesIntensityFilter = (memory, selectedIntensities) => {
   if (!selectedIntensities || selectedIntensities.length === 0) return true;
   
-  // Extract intensity from blocks
   const emotionData = memory.content 
     ? extractEmotionFromBlocks(memory.content)
     : { intensity: 5 };
@@ -101,26 +90,17 @@ export const matchesIntensityFilter = (memory, selectedIntensities) => {
   return selectedIntensities.includes(level);
 };
 
-/**
- * Check if memory matches date range filter
- * @param {Object} memory - Memory object
- * @param {Object} dateRange - { startDate, endDate }
- * @returns {boolean}
- */
 export const matchesDateFilter = (memory, dateRange) => {
   if (!dateRange || (!dateRange.startDate && !dateRange.endDate)) return true;
   
-  // Use memoryDate if available, fallback to createdAt
   const memoryDate = new Date(memory.memoryDate || memory.createdAt);
   
-  // Single date selection
   if (dateRange.startDate && !dateRange.endDate) {
     const targetDate = startOfDay(new Date(dateRange.startDate));
     const memoryDay = startOfDay(memoryDate);
     return memoryDay.getTime() === targetDate.getTime();
   }
   
-  // Date range selection
   if (dateRange.startDate && dateRange.endDate) {
     const start = startOfDay(new Date(dateRange.startDate));
     const end = endOfDay(new Date(dateRange.endDate));
@@ -131,36 +111,28 @@ export const matchesDateFilter = (memory, dateRange) => {
 };
 
 /**
- * Apply all filters to memories array
- * @param {Array} memories - Array of memory objects
- * @param {Object} filters - Filter object { families, intensities, dateRange }
- * @returns {Array} - Filtered memories
+ * Apply all filters to memories array (updated to support individual emotions)
  */
 export const applyFilters = (memories, filters) => {
   if (!Array.isArray(memories)) return [];
   
   return memories.filter(memory => {
-    return matchesEmotionFilter(memory, filters.families) &&
+    return matchesEmotionFilter(memory, filters.families, filters.emotions) &&
            matchesIntensityFilter(memory, filters.intensities) &&
            matchesDateFilter(memory, filters.dateRange);
   });
 };
 
 /**
- * Get filter summary for display
- * @param {Object} filters - Filter object
- * @returns {Object} - { activeCount, summary }
+ * Get filter summary for display (updated to include individual emotions)
  */
 export const getFilterSummary = (filters) => {
   let activeCount = 0;
   const summary = [];
   
-  if (filters.families && filters.families.length > 0) {
-    activeCount++;
-    const familyLabels = filters.families.map(key => 
-      emotionFamilies[key]?.label || key
-    );
-    summary.push(`Emotions: ${familyLabels.join(', ')}`);
+  if (filters.emotions && filters.emotions.length > 0) {
+    activeCount += filters.emotions.length;
+    summary.push(`${filters.emotions.length} emotion${filters.emotions.length > 1 ? 's' : ''} selected`);
   }
   
   if (filters.intensities && filters.intensities.length > 0) {
@@ -186,12 +158,9 @@ export const getFilterSummary = (filters) => {
   return { activeCount, summary };
 };
 
-/**
- * Create empty filter state
- * @returns {Object} - Empty filter object
- */
 export const createEmptyFilters = () => ({
   families: [],
+  emotions: [],
   intensities: [],
   dateRange: {
     startDate: null,
@@ -199,13 +168,9 @@ export const createEmptyFilters = () => ({
   }
 });
 
-/**
- * Check if filters are empty
- * @param {Object} filters - Filter object
- * @returns {boolean}
- */
 export const areFiltersEmpty = (filters) => {
   return (!filters.families || filters.families.length === 0) &&
+         (!filters.emotions || filters.emotions.length === 0) &&
          (!filters.intensities || filters.intensities.length === 0) &&
          (!filters.dateRange || (!filters.dateRange.startDate && !filters.dateRange.endDate));
 };
