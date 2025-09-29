@@ -4,13 +4,12 @@ const { CARD_CONFIG, OPTIMIZATION, drawRoundedRect } = require('./cardConfig');
 
 /**
  * Draw optimized image section
- * Converts images to WebP and reduces size for better performance
+ * Fixed to handle Railway Sharp issues properly
  */
 async function drawImage(ctx, imageData, startY, contentWidth) {
   try {
-    // Convert base64 image to optimized WebP format
-    const optimizedImageBuffer = await optimizeImage(imageData.url);
-    const img = await loadImage(optimizedImageBuffer);
+    // Try to load and optimize image
+    const img = await loadOptimizedImage(imageData.url);
     
     const { width } = CARD_CONFIG;
     const maxImageHeight = OPTIMIZATION.maxImageSize;
@@ -35,7 +34,7 @@ async function drawImage(ctx, imageData, startY, contentWidth) {
     const imgX = (width - imgWidth) / 2;
     const imgY = startY;
     
-    // Simple shadow (reduced complexity)
+    // Simple shadow
     drawSimpleShadow(ctx, imgX, imgY, imgWidth, imgHeight);
     
     // Draw image with rounded corners
@@ -54,39 +53,45 @@ async function drawImage(ctx, imageData, startY, contentWidth) {
     return startY + imgHeight + 30;
     
   } catch (error) {
-    console.warn('Failed to load optimized image:', error.message);
-    return startY;
+    console.error('Image rendering failed:', error.message);
+    return startY; // Skip image section if it fails
   }
 }
 
 /**
- * Optimize image for smaller file sizes
+ * Load and optimize image with proper fallback
  */
-async function optimizeImage(base64Url) {
+async function loadOptimizedImage(base64Url) {
+  // First try: Use Sharp to optimize
   try {
-    // Extract base64 data
     const base64Data = base64Url.split(',')[1];
     const imageBuffer = Buffer.from(base64Data, 'base64');
     
-    // Convert to optimized WebP with compression
+    // Try to optimize with Sharp
     const optimizedBuffer = await sharp(imageBuffer)
       .resize(400, 400, { 
         fit: 'inside', 
         withoutEnlargement: true 
       })
-      .webp({ 
-        quality: 75,  // Good quality but smaller file
-        effort: 6     // Good compression
+      .png({ // Use PNG instead of WebP for better compatibility
+        quality: 80,
+        compressionLevel: 6
       })
       .toBuffer();
     
-    return optimizedBuffer;
+    // Load optimized image
+    return await loadImage(optimizedBuffer);
     
-  } catch (error) {
-    console.warn('Image optimization failed, using original:', error.message);
-    // Fallback to original if optimization fails
-    const base64Data = base64Url.split(',')[1];
-    return Buffer.from(base64Data, 'base64');
+  } catch (sharpError) {
+    console.warn('Sharp optimization failed, using original image:', sharpError.message);
+    
+    // Fallback: Load original base64 image directly
+    try {
+      return await loadImage(base64Url);
+    } catch (loadError) {
+      console.error('Failed to load original image:', loadError.message);
+      throw new Error('Image loading failed completely');
+    }
   }
 }
 

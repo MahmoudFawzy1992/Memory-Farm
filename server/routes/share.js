@@ -4,13 +4,13 @@ const { generateMemoryCard } = require('../controllers/shareController');
 const { validationResult } = require('express-validator');
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 
-// FIXED: Rate limiting for card generation - 3 cards per hour per user
+// FIXED: Rate limiting for card generation - 3 cards per day per user
 const cardGenerationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // 3 cards per hour per user
+  windowMs: 24 * 60 * 60 * 1000, // 1 day
+  max: 3, // 3 cards per day per user
   message: {
-    error: 'Card generation limit reached. You can create 3 cards per hour.',
-    retryAfter: 60 * 60,
+    error: 'Card generation limit reached. You can create 3 cards per day.',
+    retryAfter: 24 * 60 * 60,
     limitType: 'card_generation'
   },
   standardHeaders: true,
