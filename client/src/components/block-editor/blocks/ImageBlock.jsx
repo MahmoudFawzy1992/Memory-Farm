@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+// Location: client/src/components/block-editor/blocks/ImageBlock.jsx
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { sanitizeTextInput } from '../../../utils/sanitization';
 import { processFileToImage } from '../../../utils/imageProcessing';
 import { validateImageFile } from './imageBlock/validators';
@@ -11,31 +12,36 @@ export default function ImageBlock({ block, onChange }) {
   const [dragOver, setDragOver] = useState(false);
   const [uploadErrors, setUploadErrors] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const updateTimeoutRef = useRef(null);
 
   // Initialize local state from block props
   useEffect(() => {
     const blockImages = block.props?.images || [];
     setLocalImages(blockImages);
-  }, []);
+  }, [block.id]); // Only re-init when block ID changes
 
-  // FIXED: Debounced update to prevent setState during render
-  const debouncedUpdateBlock = useCallback((images) => {
-    const timeoutId = setTimeout(() => {
+  // Update parent when local images change
+  useEffect(() => {
+    // Clear any pending updates
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+
+    // Debounce the update to prevent rapid state changes
+    updateTimeoutRef.current = setTimeout(() => {
       const updatedBlock = {
         ...block,
-        props: { ...block.props, images }
+        props: { ...block.props, images: localImages }
       };
       onChange(updatedBlock);
-    }, 100); // 100ms debounce
+    }, 100);
 
-    return () => clearTimeout(timeoutId);
-  }, [block, onChange]);
-
-  // Update block when local images change
-  useEffect(() => {
-    const cleanup = debouncedUpdateBlock(localImages);
-    return cleanup;
-  }, [localImages, debouncedUpdateBlock]);
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, [localImages]); // Don't include block/onChange to prevent infinite loops
 
   const handleFileSelect = async (files) => {
     setUploadErrors([]);
@@ -44,7 +50,6 @@ export default function ImageBlock({ block, onChange }) {
     const validFiles = [];
     const errors = [];
     
-    // Validate files
     Array.from(files).forEach((file, index) => {
       const validation = validateImageFile(file);
       if (validation.valid) {
@@ -58,7 +63,6 @@ export default function ImageBlock({ block, onChange }) {
       setUploadErrors(errors);
     }
     
-    // Process valid files
     const processedImages = [];
     for (const file of validFiles) {
       try {
@@ -70,13 +74,13 @@ export default function ImageBlock({ block, onChange }) {
       }
     }
     
-    // Update local state with new images
     setLocalImages(prev => [...prev, ...processedImages]);
     setUploading(false);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
     
     if (e.dataTransfer.files?.length > 0) {
@@ -86,11 +90,13 @@ export default function ImageBlock({ block, onChange }) {
 
   const handleDragOver = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(true);
   };
 
   const handleDragLeave = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOver(false);
   };
 

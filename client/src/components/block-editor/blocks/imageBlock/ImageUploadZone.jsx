@@ -1,3 +1,4 @@
+// Location: client/src/components/block-editor/blocks/imageBlock/ImageUploadZone.jsx
 import { useRef } from 'react';
 
 export default function ImageUploadZone({ 
@@ -11,10 +12,26 @@ export default function ImageUploadZone({
 }) {
   const fileInputRef = useRef(null);
 
-  const handleClick = () => {
+  const handleClick = (e) => {
+    e.stopPropagation(); // Prevent interference with parent controls
     if (!uploading) {
       fileInputRef.current?.click();
     }
+  };
+
+  const handleDrop = (e) => {
+    e.stopPropagation();
+    onDrop(e);
+  };
+
+  const handleDragOver = (e) => {
+    e.stopPropagation();
+    onDragOver(e);
+  };
+
+  const handleDragLeave = (e) => {
+    e.stopPropagation();
+    onDragLeave(e);
   };
 
   const handleFileInputChange = (e) => {
@@ -26,9 +43,9 @@ export default function ImageUploadZone({
 
   return (
     <div
-      onDrop={onDrop}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
       onClick={handleClick}
       className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${
         uploading
