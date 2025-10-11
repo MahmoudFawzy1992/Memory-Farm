@@ -1,6 +1,3 @@
-// FIXED: Removed file-type dependency to avoid ES module issues
-// Using sharp for image validation instead
-
 const sharp = require('sharp');
 
 // Allowed image types with their MIME types and signatures
