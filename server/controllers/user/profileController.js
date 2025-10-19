@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const User = require("../../models/User");
 const Memory = require("../../models/Memory");
+const Insight = require("../../models/Insight");
+const Report = require("../../models/Report");
 
 // Update profile (displayName, bio, location, privacy, password)
 exports.updateUser = async (req, res) => {
@@ -41,15 +43,60 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// Delete user and their memories
+// Delete user and cascade delete all related data
 exports.deleteUser = async (req, res) => {
   try {
-    await Memory.deleteMany({ userId: req.user.id }); // fixed: field is userId
-    await User.findByIdAndDelete(req.user.id);
-    res.clearCookie("token");
-    res.json({ message: "Account deleted" });
+    const userId = req.user.id;
+
+    console.log(`🗑️ Starting account deletion for user: ${userId}`);
+
+    // DELETE ALL USER DATA (cascade delete)
+    
+    // 1. Delete all user's memories
+    const memoriesDeleted = await Memory.deleteMany({ userId });
+    console.log(`✅ Deleted ${memoriesDeleted.deletedCount} memories`);
+
+    // 2. Delete all user's insights
+    const insightsDeleted = await Insight.deleteMany({ userId });
+    console.log(`✅ Deleted ${insightsDeleted.deletedCount} insights`);
+
+    // 3. Delete all user's reports
+    const reportsDeleted = await Report.deleteMany({ reporterId: userId });
+    console.log(`✅ Deleted ${reportsDeleted.deletedCount} reports`);
+
+    // 4. Remove user from other users' followers/following arrays
+    await User.updateMany(
+      { followers: userId },
+      { $pull: { followers: userId } }
+    );
+    await User.updateMany(
+      { following: userId },
+      { $pull: { following: userId } }
+    );
+    console.log(`✅ Removed user from all follow relationships`);
+
+    // 5. Finally, delete the user account
+    await User.findByIdAndDelete(userId);
+    console.log(`✅ User account deleted: ${userId}`);
+
+    // Clear auth cookie
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    });
+
+    res.json({ 
+      message: "Account and all data permanently deleted",
+      deleted: {
+        memories: memoriesDeleted.deletedCount,
+        insights: insightsDeleted.deletedCount,
+        reports: reportsDeleted.deletedCount
+      }
+    });
+
   } catch (err) {
-    console.error(err);
+    console.error("❌ Account deletion error:", err);
     res.status(500).json({ error: "Failed to delete account" });
   }
 };
@@ -57,18 +104,22 @@ exports.deleteUser = async (req, res) => {
 // Public profile + shared memories (respects privacy)
 exports.getPublicProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select(
+    // ✅ Extract ID from slug (supports both old and new formats)
+    const { extractIdFromSlug } = require('../../utils/slugify');
+    const userId = extractIdFromSlug(req.params.id);
+    
+    const user = await User.findById(userId).select(
       "displayName bio location isPrivate showFollowList followers"
     );
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const isOwner = req.user.id === req.params.id;
+    const isOwner = req.user.id === userId;
     if (user.isPrivate && !isOwner) {
       return res.status(403).json({ error: "This account is private" });
     }
 
-    const userId = new mongoose.Types.ObjectId(req.params.id);
-    const memories = await Memory.find({ userId, isPublic: true }).sort({ createdAt: -1 });
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const memories = await Memory.find({ userId: userObjectId, isPublic: true }).sort({ createdAt: -1 });
 
     res.json({ user, memories });
   } catch (err) {

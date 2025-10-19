@@ -108,6 +108,57 @@ export default function useSimpleInsights() {
     }
   }, []);
 
+  // Regenerate insight
+  const regenerateInsight = useCallback(async (insightId) => {
+  try {
+    console.log(`🔄 Regenerating insight ${insightId}`);
+    
+    const response = await axios.post(`/insights/${insightId}/regenerate`);
+    
+    // Update local state with regenerated insight
+    setInsights(prev => prev.map(insight => 
+      insight._id === insightId 
+        ? response.data.insight 
+        : insight
+    ));
+    
+    const remainingRegens = response.data.remainingRegenerations || 0;
+    const monthlyStats = response.data.monthlyStats;
+    
+    // Show success with monthly stats
+    if (monthlyStats) {
+      toast.success(
+        `Insight regenerated! ${monthlyStats.remainingThisMonth} of ${monthlyStats.monthlyLimit} monthly regenerations left.`,
+        { autoClose: 5000 }
+      );
+    } else if (remainingRegens > 0) {
+      toast.success(`Insight regenerated! ${remainingRegens} regenerations left for this insight.`);
+    } else {
+      toast.info('Insight regenerated! No more regenerations available for this insight.');
+    }
+    
+    return response.data.insight;
+  } catch (err) {
+    console.error('Error regenerating insight:', err);
+    
+    // Show specific error message with monthly limit info
+    const errorData = err.response?.data;
+    const errorMessage = errorData?.message || errorData?.error || 'Failed to regenerate insight';
+    
+    // Show detailed message for monthly limit
+    if (errorData?.error === 'Monthly regeneration limit reached') {
+      toast.error(
+        `${errorMessage} Try again next month!`,
+        { autoClose: 7000 }
+      );
+    } else {
+      toast.error(errorMessage);
+    }
+    
+    return null;
+  }
+}, []);
+
   // Get insights by category
   const getInsightsByCategory = useCallback((category) => {
     return insights.filter(insight => insight.category === category);
@@ -156,6 +207,7 @@ export default function useSimpleInsights() {
     triggerInsightGeneration,
     markAsRead,
     toggleFavorite,
+    regenerateInsight, // NEW
     
     // Computed values
     getInsightsByCategory,

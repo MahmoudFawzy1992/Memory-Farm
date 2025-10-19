@@ -42,13 +42,19 @@ function Navbar() {
   return (
     <nav className="bg-purple-50 border-b border-purple-200 shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-24">
           {/* Logo / Brand */}
-          <h1 className="text-xl font-bold text-purple-700 font-serif">
-            <NavLink to="/" className="hover:opacity-80 transition-opacity duration-200">
-              🌸 Memory Farm
+          <div className="flex items-center gap-2">
+            <NavLink to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200">
+              <img
+                src="/Logo.png"
+                alt="Memory Farm Logo"
+                className="h-24 w-auto object-contain"
+              />
+              <span className="sr-only">Memory Farm</span>
             </NavLink>
-          </h1>
+          </div>
+
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex gap-4 items-center">

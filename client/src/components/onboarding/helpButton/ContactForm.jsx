@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
+import axiosInstance from '../../../utils/axiosInstance';
 
 /**
  * Contact form component for user support requests
@@ -15,23 +16,53 @@ export default function ContactForm({ onBack }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validate form fields
     if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
       toast.error('Please fill in all fields');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Please enter a valid email address');
       return;
     }
 
     setIsSubmitting(true);
     
     try {
-      // For now, just show success message
-      // In production, this would send to your support system
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success('Message sent! We\'ll get back to you soon.');
-      setFormData({ name: '', email: '', message: '' });
-      onBack();
+      // Send the contact form data to backend
+      const response = await axiosInstance.post('/contact', {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        message: formData.message.trim()
+      });
+
+      if (response.data.success) {
+        toast.success('Message sent! We\'ll get back to you soon.');
+        setFormData({ name: '', email: '', message: '' });
+        
+        // Small delay before going back to give user time to see success message
+        setTimeout(() => {
+          onBack();
+        }, 1500);
+      } else {
+        throw new Error(response.data.message || 'Failed to send message');
+      }
     } catch (error) {
-      toast.error('Failed to send message. Please try again.');
+      console.error('Contact form error:', error);
+      
+      // Handle rate limiting
+      if (error.response?.status === 429) {
+        toast.error('Too many messages sent. Please try again in a few minutes.');
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (error.message) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to send message. Please try again later.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -47,6 +78,7 @@ export default function ContactForm({ onBack }) {
         <button
           onClick={onBack}
           className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+          disabled={isSubmitting}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -67,6 +99,8 @@ export default function ContactForm({ onBack }) {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
             placeholder="Your full name"
             disabled={isSubmitting}
+            maxLength={100}
+            required
           />
         </div>
 
@@ -81,6 +115,8 @@ export default function ContactForm({ onBack }) {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
             placeholder="your@email.com"
             disabled={isSubmitting}
+            maxLength={150}
+            required
           />
         </div>
 
@@ -95,12 +131,17 @@ export default function ContactForm({ onBack }) {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm resize-none"
             placeholder="Tell us how we can help you..."
             disabled={isSubmitting}
+            maxLength={1000}
+            required
           />
+          <p className="text-xs text-gray-500 mt-1">
+            {formData.message.length}/1000 characters
+          </p>
         </div>
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !formData.name.trim() || !formData.email.trim() || !formData.message.trim()}
           className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
         >
           {isSubmitting ? (

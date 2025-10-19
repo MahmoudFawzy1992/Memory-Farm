@@ -5,12 +5,13 @@ import { formatDistanceToNow } from 'date-fns';
 export default function InsightCard({ 
   insight, 
   onMarkAsRead, 
-  onToggleFavorite,
+  onRegenerate, // Regenerate function
   showActions = true,
   compact = false 
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const handleMarkAsRead = async () => {
     if (insight.isRead) return;
@@ -23,12 +24,14 @@ export default function InsightCard({
     }
   };
 
-  const handleToggleFavorite = async () => {
-    setIsProcessing(true);
+  const handleRegenerate = async () => {
+    if (!onRegenerate) return;
+    
+    setIsRegenerating(true);
     try {
-      await onToggleFavorite(insight._id);
+      await onRegenerate(insight._id);
     } finally {
-      setIsProcessing(false);
+      setIsRegenerating(false);
     }
   };
 
@@ -47,6 +50,13 @@ export default function InsightCard({
     if (priority >= 3) return '⭐';
     return '💡';
   };
+
+  // Calculate remaining regenerations
+  const regenerateCount = insight.aiMetadata?.regenerateCount || 0;
+  const remainingRegens = 3 - regenerateCount;
+
+  // Also check if onRegenerate function exists (Dashboard passes monthly limit info)
+  const canRegenerate = remainingRegens > 0 && onRegenerate;
 
   return (
     <motion.div
@@ -77,32 +87,24 @@ export default function InsightCard({
                 <span>Memory #{insight.triggerMemoryCount}</span>
                 <span>•</span>
                 <span>{formatDistanceToNow(new Date(insight.createdAt), { addSuffix: true })}</span>
+                
+                {/* ✅ Dev mode indicator - ONLY shows in local development */}
+                {import.meta.env.DEV && insight.aiMetadata?.model && (
+                  <>
+                    <span>•</span>
+                    <span className="text-xs opacity-75">
+                      {insight.aiMetadata.model === 'gpt-4o-mini' ? '🤖 GPT' : 
+                       insight.aiMetadata.model === 'llama-3.2' ? '🦙 Llama' : 
+                       '📝 Static'}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
             <span className="text-lg">{getPriorityIndicator(insight.priority)}</span>
-            {showActions && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggleFavorite();
-                }}
-                disabled={isProcessing}
-                className="p-1 text-white hover:bg-white hover:bg-opacity-20 rounded-full transition-colors disabled:opacity-50"
-              >
-                {insight.isFavorited ? (
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                )}
-              </button>
-            )}
           </div>
         </div>
 
@@ -124,40 +126,80 @@ export default function InsightCard({
           {insight.message}
         </p>
 
+        {/* Action Buttons */}
+        {showActions && (
+          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            {/* Mark as Read Button */}
+            {!insight.isRead && (
+              <button
+                onClick={handleMarkAsRead}
+                disabled={isProcessing}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              >
+                {isProcessing ? '⏳ Processing...' : '✓ Mark as read'}
+              </button>
+            )}
+
+            {/* Regenerate Button */}
+            {canRegenerate && onRegenerate && (
+              <button
+                onClick={handleRegenerate}
+                disabled={isRegenerating || isProcessing}
+                className="flex-1 px-4 py-2 border-2 border-purple-200 text-purple-600 rounded-lg hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              >
+                {isRegenerating ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Regenerating...</span>
+                  </span>
+                ) : (
+                  <>🔄 Try again ({remainingRegens} left)</>
+                )}
+              </button>
+            )}
+
+            {/* Compact toggle */}
+            {compact && (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="text-xs text-gray-500 hover:text-gray-700 px-3 py-2"
+              >
+                {isExpanded ? 'Show less' : 'Show more'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Regeneration limit message */}
+        {!canRegenerate && showActions && (
+          <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-xs text-gray-600 text-center">
+              💡 Monthly Regeneration limit reached. Create more memories to help me learn and generate better insights!
+            </p>
+          </div>
+        )}
+
         {/* Footer */}
-        <div className="flex items-center justify-between mt-3">
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
           <div className="text-xs text-gray-500">
             {formatDistanceToNow(new Date(insight.createdAt), { addSuffix: true })}
           </div>
 
-          {showActions && (
-            <div className="flex items-center gap-2">
-              {!insight.isRead && (
-                <button
-                  onClick={handleMarkAsRead}
-                  disabled={isProcessing}
-                  className="text-xs text-purple-600 hover:text-purple-800 font-medium disabled:opacity-50"
-                >
-                  Mark as read
-                </button>
-              )}
-              
-              {compact && (
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="text-xs text-gray-500 hover:text-gray-700"
-                >
-                  {isExpanded ? 'Show less' : 'Show more'}
-                </button>
-              )}
-            </div>
-          )}
+          {/* Category badge */}
+          <span 
+            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(insight.category)}`}
+          >
+            {getCategoryIcon(insight.category)} {insight.category}
+          </span>
         </div>
       </div>
 
       {/* Read indicator */}
-      {insight.isRead && (
-        <div className="px-4 pb-2">
+      {insight.isRead && insight.readAt && (
+        <div className="px-4 pb-3">
           <div className="flex items-center gap-1 text-xs text-gray-400">
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
               <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
@@ -179,17 +221,4 @@ function getCategoryIcon(category) {
     trend: '📈'
   };
   return icons[category] || '💡';
-}
-
-function getTypeIcon(type) {
-  const icons = {
-    milestone: '🎯',
-    emotion_pattern: '🎭',
-    writing_pattern: '✍️',
-    streak: '🔥',
-    diversity: '🌈',
-    complexity: '📚',
-    consistency: '⚡'
-  };
-  return icons[type] || '💡';
 }

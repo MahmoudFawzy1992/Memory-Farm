@@ -72,11 +72,13 @@ export default function ShareMemoryButton({
 
   const handleCopyLink = async () => {
     try {
-      await copyShareLink(memory._id);
-    } catch (error) {
+        // ✅ Pass both memory ID and title for slug generation
+        await copyShareLink(memory._id, memory.title);
+      } catch (error) {
       console.error('Copy link error:', error);
     }
   };
+
 
   // Button styling variants
   const baseClasses = "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";

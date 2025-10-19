@@ -39,8 +39,11 @@ exports.getPublicMemories = async (_req, res) => {
 };
 
 // Read one memory (enforces privacy inside controller) with block content
+// ✅ NOW SUPPORTS SLUGS: /memory/my-title-68dbb9b531eee227a8b42340
 exports.getMemoryById = async (req, res) => {
-  const memoryId = req.params.id;
+  // ✅ Extract ID from slug (supports both formats)
+  const { extractIdFromSlug } = require('../../utils/slugify');
+  const memoryId = extractIdFromSlug(req.params.id);
 
   try {
     const memory = await Memory.findById(memoryId)

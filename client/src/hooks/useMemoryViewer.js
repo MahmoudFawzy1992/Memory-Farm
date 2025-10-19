@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
+import { generateUserSlug } from "../utils/memorySlug";
 import { generateMemoryMetadata, isMemoryOwner, getAuthorInfo } from "../utils/blockViewerUtils";
 import { updateMemory, deleteMemory, toggleMemoryVisibility, getMemoryById } from "../services/memoryService";
 
@@ -176,7 +177,7 @@ export default function useMemoryViewer(user) {
 
   const goToAuthor = () => {
     if (authorInfo?.author?._id) {
-      navigate(`/user/${authorInfo.author._id}`);
+      navigate(`/user/${generateUserSlug(authorInfo.author.displayName, authorInfo.author._id)}`);
     }
   };
 

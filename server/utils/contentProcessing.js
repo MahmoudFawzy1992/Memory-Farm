@@ -9,15 +9,25 @@ function extractTextFromBlocks(blocks) {
   
   return blocks
     .map(block => {
-      if (!block.content || !Array.isArray(block.content)) return '';
+      // Extract from regular content blocks (paragraph, checkList, etc.)
+      let blockText = '';
       
-      return block.content
-        .map(item => {
-          if (typeof item === 'string') return item;
-          if (item.text) return item.text;
-          return '';
-        })
-        .join(' ');
+      if (block.content && Array.isArray(block.content)) {
+        blockText = block.content
+          .map(item => {
+            if (typeof item === 'string') return item;
+            if (item.text) return item.text;
+            return '';
+          })
+          .join(' ');
+      }
+      
+      // IMPORTANT: Also extract from MoodBlock notes
+      if (block.type === 'mood' && block.props?.note) {
+        blockText += ' ' + block.props.note;
+      }
+      
+      return blockText;
     })
     .filter(text => text.trim())
     .join('\n')

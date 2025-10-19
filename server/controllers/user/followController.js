@@ -1,10 +1,14 @@
 const User = require("../../models/User");
+const { extractIdFromSlug } = require("../../utils/slugify"); // ✅ ADD THIS
 
 // Follow user
 exports.followUser = async (req, res) => {
   try {
+    // ✅ Extract ID from slug
+    const targetUserId = extractIdFromSlug(req.params.id);
+    
     const me = await User.findById(req.user.id);
-    const target = await User.findById(req.params.id);
+    const target = await User.findById(targetUserId);
 
     if (!target) return res.status(404).json({ error: "User not found" });
     if (me._id.equals(target._id)) return res.status(400).json({ error: "Cannot follow yourself" });
@@ -28,8 +32,11 @@ exports.followUser = async (req, res) => {
 // Unfollow user
 exports.unfollowUser = async (req, res) => {
   try {
+    // ✅ Extract ID from slug
+    const targetUserId = extractIdFromSlug(req.params.id);
+    
     const me = await User.findById(req.user.id);
-    const target = await User.findById(req.params.id);
+    const target = await User.findById(targetUserId);
 
     if (!target) return res.status(404).json({ error: "User not found" });
 
@@ -49,10 +56,14 @@ exports.unfollowUser = async (req, res) => {
 // Followers
 exports.getFollowers = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).populate("followers", "displayName");
+    // ✅ Extract ID from slug
+    const userId = extractIdFromSlug(req.params.id);
+    
+    const user = await User.findById(userId).populate("followers", "displayName");
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json({ followers: user.followers });
   } catch (err) {
+    console.error("Get followers error:", err);
     res.status(500).json({ error: "Failed to fetch followers" });
   }
 };
@@ -60,10 +71,14 @@ exports.getFollowers = async (req, res) => {
 // Following
 exports.getFollowing = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).populate("following", "displayName");
+    // ✅ Extract ID from slug
+    const userId = extractIdFromSlug(req.params.id);
+    
+    const user = await User.findById(userId).populate("following", "displayName");
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json({ following: user.following });
   } catch (err) {
+    console.error("Get following error:", err);
     res.status(500).json({ error: "Failed to fetch following" });
   }
 };

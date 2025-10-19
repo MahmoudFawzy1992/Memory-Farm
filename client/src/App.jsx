@@ -16,6 +16,7 @@ import Dashboard from "./pages/Dashboard";
 import MoodTracker from "./pages/MoodTracker";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 import { AnimatePresence } from "framer-motion";
 import PrivateRoute from "./components/routes/PrivateRoute";
@@ -40,6 +41,7 @@ function App() {
           <Route path="verify-email" element={<VerifyEmail />} />
           <Route path="forgot-password" element={<ForgotPassword />} />
           <Route path="reset-password" element={<ResetPassword />} />
+          <Route path="privacy-policy" element={<PrivacyPolicy />} />
 
           {/* Smart Home Route - Landing for guests, Home for users */}
           <Route

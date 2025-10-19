@@ -92,6 +92,59 @@ const userSchema = new mongoose.Schema(
       }
     },
 
+    // AI Usage Tracking 
+    // AI Usage Tracking
+aiUsageTracking: {
+  totalAIInsights: {
+    type: Number,
+    default: 0
+  },
+  gpt4oInsights: {
+    type: Number,
+    default: 0
+  },
+  llamaInsights: {
+    type: Number,
+    default: 0
+  },
+  staticInsights: {
+    type: Number,
+    default: 0
+  },
+  lastModelUsed: {
+    type: String,
+    enum: ['gpt-4o-mini', 'llama-3.2', 'static', null],
+    default: null
+  },
+  lastAIInsightAt: Date,
+  totalTokensUsed: {
+    type: Number,
+    default: 0
+  },
+  totalCostIncurred: {
+    type: Number,
+    default: 0
+  },
+  
+  // NEW: Monthly regeneration tracking
+  monthlyRegenerations: {
+    count: {
+      type: Number,
+      default: 0
+    },
+    month: {
+      type: String, // Format: "YYYY-MM"
+      default: () => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      }
+    },
+    lastResetAt: {
+      type: Date,
+      default: Date.now
+    }
+  }
+},
     // Pattern Analysis Cache
     patternCache: {
       lastCalculatedAt: Date,
@@ -134,6 +187,7 @@ userSchema.index({ email: 1 });
 userSchema.index({ 'onboardingStatus.isCompleted': 1 });
 userSchema.index({ 'insightsPreferences.enabled': 1 });
 userSchema.index({ 'patternCache.lastCalculatedAt': 1 });
+userSchema.index({ 'aiUsageTracking.lastAIInsightAt': 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
@@ -158,13 +212,13 @@ userSchema.methods.shouldReceiveInsight = function(memoryCount) {
     case 'every_memory':
       return true;
     case 'every_5':
-      return memoryCount === 1 || memoryCount % 5 === 0; // Add memory count 1
+      return memoryCount === 1 || memoryCount % 5 === 0;
     case 'every_10':
-      return memoryCount === 1 || memoryCount % 10 === 0; // Add memory count 1
+      return memoryCount === 1 || memoryCount % 10 === 0;
     case 'milestones_only':
       return [1, 5, 10, 15, 25, 50, 100, 200, 500].includes(memoryCount);
     default:
-      return memoryCount === 1 || memoryCount % 5 === 0; // Add memory count 1
+      return memoryCount === 1 || memoryCount % 5 === 0;
   }
 }
 
@@ -190,5 +244,66 @@ userSchema.methods.updatePatternCache = function(patternData) {
   };
   return this.save();
 }
+
+// NEW: Track AI usage
+userSchema.methods.trackAIUsage = function(model, tokensUsed = 0, cost = 0) {
+  this.aiUsageTracking.totalAIInsights += 1;
+  this.aiUsageTracking.lastModelUsed = model;
+  this.aiUsageTracking.lastAIInsightAt = new Date();
+  
+  if (model === 'gpt-4o-mini') {
+    this.aiUsageTracking.gpt4oInsights += 1;
+    this.aiUsageTracking.totalTokensUsed += tokensUsed;
+    this.aiUsageTracking.totalCostIncurred += cost;
+  } else if (model === 'llama-3.2') {
+    this.aiUsageTracking.llamaInsights += 1;
+  } else if (model === 'static') {
+    this.aiUsageTracking.staticInsights += 1;
+  }
+  
+  return this.save();
+}
+
+// NEW: Track regeneration usage
+userSchema.methods.trackRegeneration = function() {
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  
+  // Reset if it's a new month
+  if (this.aiUsageTracking.monthlyRegenerations.month !== currentMonth) {
+    this.aiUsageTracking.monthlyRegenerations = {
+      count: 1,
+      month: currentMonth,
+      lastResetAt: new Date()
+    };
+  } else {
+    this.aiUsageTracking.monthlyRegenerations.count += 1;
+  }
+  
+  return this.save();
+};
+
+// NEW: Check if user can regenerate
+userSchema.methods.canRegenerateThisMonth = function() {
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  
+  // Auto-reset if new month
+  if (this.aiUsageTracking.monthlyRegenerations.month !== currentMonth) {
+    return true; // New month, they can regenerate
+  }
+  
+  return this.aiUsageTracking.monthlyRegenerations.count < 3;
+};
+
+// NEW: Get remaining regenerations for this month
+userSchema.methods.getRemainingRegenerations = function() {
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  
+  // Auto-reset if new month
+  if (this.aiUsageTracking.monthlyRegenerations.month !== currentMonth) {
+    return 3;
+  }
+  
+  return Math.max(0, 3 - this.aiUsageTracking.monthlyRegenerations.count);
+};
 
 module.exports = mongoose.model('User', userSchema)

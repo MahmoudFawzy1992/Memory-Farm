@@ -1,363 +1,333 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useState, useEffect } from "react";
 
 export default function LandingPage() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [currentFeature, setCurrentFeature] = useState(0);
-
-  const features = [
-    {
-      icon: "🧠",
-      title: "Smart Memory Journaling",
-      description: "Capture your thoughts with intelligent emotion tracking and mood analysis.",
-      gradient: "from-purple-400 to-pink-400"
-    },
-    {
-      icon: "📊",
-      title: "Mood Analytics",
-      description: "Visualize your emotional patterns with beautiful charts and insights.",
-      gradient: "from-blue-400 to-purple-400"
-    },
-    {
-      icon: "🌍",
-      title: "Social Connection",
-      description: "Connect with others through shared experiences and public memories.",
-      gradient: "from-green-400 to-blue-400"
-    },
-    {
-      icon: "🎯",
-      title: "Personal Growth",
-      description: "Track your emotional journey and discover patterns for better wellbeing.",
-      gradient: "from-orange-400 to-red-400"
-    }
-  ];
-
-  const futureFeatures = [
-    { icon: "🤖", title: "AI-Powered Insights", description: "Smart recommendations based on your patterns" },
-    { icon: "🌍", title: "Memory Map", description: "Pin your memories across places you've been" },
-    { icon: "🌟", title: "Achievement System", description: "Unlock badges for consistent journaling" },
-    { icon: "👥", title: "Memory Circles", description: "Private groups for sharing with close friends" }
-  ];
+  const [isVisible, setIsVisible] = useState({});
+  const { scrollY } = useScroll();
+  
+  // Parallax effects
+  const y1 = useTransform(scrollY, [0, 300], [0, 50]);
+  const y2 = useTransform(scrollY, [0, 300], [0, -50]);
+  const opacity = useTransform(scrollY, [0, 300], [1, 0.3]);
 
   useEffect(() => {
-  const hash = window.location.hash.substring(1);
-  if (hash) {
-    setTimeout(() => {
-      const element = document.getElementById(hash);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
-  }
-}, []);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          setIsVisible(prev => ({
+            ...prev,
+            [entry.target.id]: entry.isIntersecting
+          }));
+        });
+      },
+      { threshold: 0.1 }
+    );
 
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
+    document.querySelectorAll('[data-animate]').forEach((el) => {
+      observer.observe(el);
+    });
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentFeature((prev) => (prev + 1) % features.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
+  const fadeInUp = {
+    initial: { opacity: 0, y: 40 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6, ease: "easeOut" }
   };
 
-  const itemVariants = {
-    hidden: { y: 50, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
+  const stagger = {
+    animate: {
       transition: {
-        duration: 0.8,
-        ease: "easeOut"
+        staggerChildren: 0.1
       }
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 overflow-hidden">
-      {/* Floating Background Elements */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div 
-          className="absolute w-96 h-96 bg-purple-200/20 rounded-full blur-3xl"
-          style={{
-            transform: `translate(${mousePosition.x * 0.02}px, ${mousePosition.y * 0.02}px)`
-          }}
-        />
-        <div 
-          className="absolute top-1/2 right-0 w-80 h-80 bg-pink-200/20 rounded-full blur-3xl"
-          style={{
-            transform: `translate(${mousePosition.x * -0.01}px, ${mousePosition.y * 0.01}px)`
-          }}
-        />
-      </div>
-
+    <div className="min-h-screen bg-white">
+      
       {/* Hero Section */}
-      <motion.section 
-        className="relative min-h-screen flex items-center justify-center px-4"
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
-      >
-        <div className="max-w-6xl mx-auto text-center">
-          <motion.div variants={itemVariants}>
-            <h1 className="text-6xl md:text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 mb-6">
-              Memory Farm
-            </h1>
-            <div className="text-2xl md:text-4xl text-gray-700 mb-8 font-light">
-              🌱 Grow Your{" "}
-              <span className="inline-block">
-                <motion.span
-                  key={currentFeature}
-                  initial={{ y: 50, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: -50, opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className={`text-transparent bg-clip-text bg-gradient-to-r ${features[currentFeature].gradient}`}
-                >
-                  {features[currentFeature].title.split(' ')[1]}
-                </motion.span>
-              </span>{" "}
-              Journey
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-white via-teal-50/20 to-white">
+        {/* Animated background elements */}
+        <motion.div 
+          className="absolute inset-0 z-0"
+          style={{ opacity }}
+        >
+          <motion.div 
+            className="absolute top-20 left-10 w-72 h-72 bg-teal-200/30 rounded-full blur-3xl"
+            style={{ y: y1 }}
+          />
+          <motion.div 
+            className="absolute bottom-20 right-10 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl"
+            style={{ y: y2 }}
+          />
+        </motion.div>
+
+        <div className="container mx-auto px-4 py-20 relative z-10">
+          <motion.div 
+            initial="initial"
+            animate="animate"
+            variants={stagger}
+            className="max-w-4xl mx-auto text-center"
+          >
+            {/* Logo */}
+            <motion.div 
+              variants={fadeInUp}
+              className="mb-8"
+            >
+              <img 
+                src="/Logo.png" 
+                alt="Memory Farm" 
+                className="h-32 w-auto mx-auto drop-shadow-lg"
+              />
+            </motion.div>
+
+            {/* Main heading */}
+            <motion.h1 
+              variants={fadeInUp}
+              className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
+            >
+              <span className="block text-gray-800">Your memories deserve</span>
+              <span className="block mt-2 text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-blue-600">
+                a home that understands you
+              </span>
+            </motion.h1>
+
+            {/* Description */}
+            <motion.div 
+              variants={fadeInUp}
+              className="text-lg md:text-xl text-gray-600 mb-12 max-w-3xl mx-auto space-y-4"
+            >
+              <p>Every moment you live leaves a trace — thoughts, moods, decisions, reflections.</p>
+              <p className="font-semibold text-gray-700">Memory Farm helps you turn those moments into meaning.</p>
+              <p>Through smart analysis and gentle insight, it transforms your daily memories into clear patterns of growth and emotional understanding.</p>
+            </motion.div>
+
+            {/* CTA Button */}
+            <motion.div 
+              variants={fadeInUp}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Link
+                to="/signup"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-teal-500 to-blue-600 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 group"
+              >
+                <span className="text-lg">Start your journey</span>
+                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
+            </motion.div>
+          </motion.div>
+        </div>
+
+        {/* Scroll indicator */}
+        <motion.div 
+          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+        >
+          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </motion.div>
+      </section>
+
+      {/* What Memory Farm Does Section */}
+      <section className="py-20 px-4 bg-gray-50" id="features" data-animate>
+        <div className="container mx-auto max-w-6xl">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={isVisible.features ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-800 mb-4">
+              🌿 What Memory Farm Does
+            </h2>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                number: "1",
+                title: "Capture your moments",
+                description: "Write freely — your ideas, your emotions, your story. Each memory you record becomes part of a living timeline that reflects your inner world.",
+                icon: "✍️"
+              },
+              {
+                number: "2",
+                title: "Understand yourself deeper",
+                description: "Our AI doesn't just summarize — it interprets. It finds the subtle patterns in your moods, habits, and choices, revealing how your experiences connect and evolve.",
+                icon: "🧠"
+              },
+              {
+                number: "3",
+                title: "Grow with awareness",
+                description: "Over time, Memory Farm shows you where you're thriving, what drains you, and what truly matters. It's like watching the story of your growth unfold before your eyes.",
+                icon: "🌱"
+              }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30 }}
+                animate={isVisible.features ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.6, delay: index * 0.2 }}
+                whileHover={{ y: -10 }}
+                className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-teal-100 to-blue-100 rounded-full blur-2xl opacity-50 group-hover:opacity-70 transition-opacity" />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-teal-500 to-blue-600 text-white rounded-xl font-bold text-xl">
+                      {feature.number}
+                    </span>
+                    <span className="text-3xl">{feature.icon}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">{feature.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Why Different Section */}
+      <section className="py-20 px-4 bg-white" id="why-different" data-animate>
+        <div className="container mx-auto max-w-6xl">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={isVisible['why-different'] ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-800 mb-4">
+              ✨ Why Memory Farm Is Different
+            </h2>
+            <p className="text-xl text-gray-600 font-medium">
+              Not another journal. But A mirror for your mind.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: "🌱", title: "AI insights that feel human", description: "Real reflections, written in a voice that understands your emotions." },
+              { icon: "🔒", title: "Your space, your privacy", description: "What you write is yours. Always." },
+              { icon: "📅", title: "Visual growth timeline", description: "See how your emotions, thoughts, and progress evolve over time." },
+              { icon: "💫", title: "Insights that bring clarity", description: "Gentle reflections that help you see what's truly shaping your emotions and growth." }
+            ].map((item, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={isVisible['why-different'] ? { opacity: 1, scale: 1 } : {}}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                whileHover={{ scale: 1.05 }}
+                className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-2xl p-6 border border-teal-100 hover:border-teal-300 transition-all duration-300"
+              >
+                <div className="text-4xl mb-4">{item.icon}</div>
+                <h3 className="font-bold text-gray-800 mb-2">{item.title}</h3>
+                <p className="text-sm text-gray-600">{item.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Who It's For Section */}
+      <section className="py-20 px-4 bg-gradient-to-br from-teal-50 via-white to-blue-50" id="who" data-animate>
+        <div className="container mx-auto max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={isVisible.who ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6 }}
+            className="bg-white rounded-3xl shadow-2xl p-12 text-center"
+          >
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-800 mb-8">
+              ❤️ Who It's For
+            </h2>
+            
+            <div className="space-y-4 text-lg text-gray-700">
+              <p>People who want to know themselves better.</p>
+              <p>Those building habits, healing, or creating something meaningful.</p>
+              <p>Anyone who believes that reflection isn't slowing down — it's moving forward with purpose.</p>
+              
+              <div className="pt-8 pb-4">
+                <p className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-blue-600">
+                  Whether you're a dreamer, a builder, or someone finding their way — Memory Farm helps you see the story you've been living.
+                </p>
+              </div>
             </div>
           </motion.div>
+        </div>
+      </section>
 
-          <motion.p 
-            variants={itemVariants}
-            className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed"
-          >
-            Transform your daily experiences into meaningful insights. Track emotions, 
-            discover patterns, and connect with a community of mindful individuals.
-          </motion.p>
-
-          <motion.div 
-            variants={itemVariants}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-          >
-            <Link
-              to="/signup"
-              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-full text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+      {/* Mission Section */}
+      <section className="py-20 px-4 bg-white" id="mission" data-animate>
+        <div className="container mx-auto max-w-5xl">
+          <div className="bg-gradient-to-r from-teal-500 to-blue-600 rounded-3xl p-12 md:p-16 text-white text-center shadow-2xl">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={isVisible.mission ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.6 }}
             >
-              🚀 Start Your Journey
-            </Link>
-            <Link
-              to="/login"
-              className="px-8 py-4 bg-white/80 backdrop-blur-sm text-purple-600 font-semibold rounded-full text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border border-purple-200"
+              <h2 className="text-3xl md:text-5xl font-bold mb-8">
+                🔮 Our Mission
+              </h2>
+              
+              <div className="space-y-4 text-lg">
+                <p>To make self-understanding simple, private, and powerful.</p>
+                <p>To help every person grow through what they've already lived.</p>
+                
+                <div className="pt-8">
+                  <p className="text-xl font-semibold text-teal-100">
+                    Because memory isn't just the past — it's the soil of who you're becoming.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="py-24 px-4 bg-gradient-to-b from-white to-teal-50" id="cta" data-animate>
+        <div className="container mx-auto max-w-4xl text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={isVisible.cta ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-800 mb-6">
+              🚀 Start Growing Through Your Memories
+            </h2>
+            
+            <div className="space-y-3 text-lg text-gray-600 mb-12">
+              <p>Reflection is how we evolve.</p>
+              <p className="font-semibold text-gray-700">Your story is waiting to be understood.</p>
+            </div>
+
+            <motion.div 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              🔐 Welcome Back
-            </Link>
-          </motion.div>
-
-          {/* Animated Memory Cards */}
-          <motion.div 
-            className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto"
-            variants={containerVariants}
-          >
-            {[
-              { emoji: "😊", text: "Had an amazing coffee today!", color: "from-yellow-400 to-orange-400" },
-              { emoji: "🌱", text: "Started my meditation practice", color: "from-green-400 to-teal-400" },
-              { emoji: "💡", text: "Great idea for my project!", color: "from-blue-400 to-purple-400" }
-            ].map((memory, index) => (
-              <motion.div
-                key={index}
-                variants={itemVariants}
-                whileHover={{ scale: 1.05, rotateY: 5 }}
-                className={`p-6 bg-gradient-to-br ${memory.color} rounded-xl shadow-lg text-white transform transition-all duration-300`}
-                style={{
-                  transform: `rotateY(${(mousePosition.x - window.innerWidth / 2) * 0.01}deg)`
-                }}
+              <Link
+                to="/signup"
+                className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-teal-500 to-blue-600 text-white font-bold rounded-2xl text-xl shadow-2xl hover:shadow-3xl transition-all duration-300 group"
               >
-                <div className="text-4xl mb-2">{memory.emoji}</div>
-                <p className="text-lg font-medium">{memory.text}</p>
-              </motion.div>
-            ))}
+                <span>Join Memory Farm</span>
+                <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
+            </motion.div>
           </motion.div>
         </div>
-      </motion.section>
-
-      {/* Features Section */}
-      <motion.section 
-        id="features"
-        className="py-20 px-4 bg-white/50 backdrop-blur-sm"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={containerVariants}
-      >
-        <div className="max-w-6xl mx-auto">
-          <motion.h2 
-            variants={itemVariants}
-            className="text-5xl font-bold text-center text-gray-800 mb-16"
-          >
-            ✨ Powerful Features
-          </motion.h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                variants={itemVariants}
-                whileHover={{ y: -10, scale: 1.02 }}
-                className="group p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300"
-                onMouseEnter={() => setCurrentFeature(index)}
-              >
-                <div className={`text-6xl mb-4 p-4 rounded-2xl bg-gradient-to-br ${feature.gradient} inline-block text-white group-hover:scale-110 transition-transform duration-300`}>
-                  {feature.icon}
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-4">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </motion.section>
-
-      {/* How It Works Section */}
-      <motion.section 
-        id="how-it-works"
-        className="py-20 px-4"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={containerVariants}
-      >
-        <div className="max-w-6xl mx-auto">
-          <motion.h2 
-            variants={itemVariants}
-            className="text-5xl font-bold text-center text-gray-800 mb-16"
-          >
-            🚀 How It Works
-          </motion.h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {[
-              { step: "1", title: "Capture", description: "Write down your daily experiences and emotions", icon: "✍️" },
-              { step: "2", title: "Analyze", description: "Watch as patterns emerge from your mood data", icon: "📊" },
-              { step: "3", title: "Grow", description: "Use insights to improve your mental wellbeing", icon: "🌱" }
-            ].map((step, index) => (
-              <motion.div
-                key={index}
-                variants={itemVariants}
-                className="text-center group"
-              >
-                <div className="relative">
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                    {step.step}
-                  </div>
-                  <div className="absolute -top-2 -right-2 text-4xl group-hover:animate-bounce">
-                    {step.icon}
-                  </div>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-4">{step.title}</h3>
-                <p className="text-gray-600 text-lg leading-relaxed">{step.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </motion.section>
-
-      {/* Future Updates Section */}
-      <motion.section 
-        id="future"
-        className="py-20 px-4 bg-gradient-to-r from-purple-900 via-blue-900 to-purple-900 text-white relative overflow-hidden"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={containerVariants}
-      >
-        {/* Animated Background */}
-        <div className="absolute inset-0">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 bg-white/20 rounded-full animate-pulse"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 2}s`,
-                animationDuration: `${2 + Math.random() * 3}s`
-              }}
-            />
-          ))}
-        </div>
-
-        <div className="max-w-6xl mx-auto relative z-10">
-          <motion.h2 
-            variants={itemVariants}
-            className="text-5xl font-bold text-center mb-4"
-          >
-            🔮 The Future Awaits
-          </motion.h2>
-          <motion.p 
-            variants={itemVariants}
-            className="text-xl text-center text-purple-200 mb-16 max-w-3xl mx-auto"
-          >
-            We're constantly innovating to bring you the most advanced memory journaling experience.
-          </motion.p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {futureFeatures.map((feature, index) => (
-              <motion.div
-                key={index}
-                variants={itemVariants}
-                whileHover={{ scale: 1.05, rotateY: 10 }}
-                className="p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300"
-              >
-                <div className="text-5xl mb-4 animate-pulse">{feature.icon}</div>
-                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                <p className="text-purple-200">{feature.description}</p>
-                <div className="mt-4 text-sm text-purple-300">Coming Soon...</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </motion.section>
-
-      {/* CTA Section */}
-      <motion.section 
-        className="py-20 px-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-center"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
-        variants={containerVariants}
-      >
-        <motion.h2 
-          variants={itemVariants}
-          className="text-5xl font-bold mb-8"
-        >
-          Ready to Start Growing?
-        </motion.h2>
-        <motion.p 
-          variants={itemVariants}
-          className="text-xl mb-12 max-w-2xl mx-auto"
-        >
-          Join thousands of users who are already transforming their daily experiences into meaningful insights.
-        </motion.p>
-        <motion.div variants={itemVariants}>
-          <Link
-            to="/signup"
-            className="px-12 py-6 bg-white text-purple-600 font-bold rounded-full text-xl shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 inline-block"
-          >
-            🌱 Plant Your First Memory
-          </Link>
-        </motion.div>
-      </motion.section>
+      </section>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import axios from '../utils/axiosInstance';
 import { saveAs } from 'file-saver';
+import { generateMemorySlug } from '../utils/memorySlug';
 
 /**
  * Hook for handling memory card sharing functionality
@@ -161,9 +162,11 @@ export default function useCardSharing() {
   /**
    * Copy share link to clipboard
    */
-  const copyShareLink = useCallback(async (memoryId) => {
-    try {
-      const shareUrl = `${window.location.origin}/memory/${memoryId}`;
+const copyShareLink = useCallback(async (memoryId, memoryTitle) => {
+  try {
+    // ✅ Generate slug for shareable URL
+    const slug = generateMemorySlug(memoryTitle, memoryId);
+    const shareUrl = `${window.location.origin}/memory/${slug}`;
       
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(shareUrl);
@@ -194,7 +197,8 @@ export default function useCardSharing() {
       console.error('Copy failed:', error);
       
       // Show the URL in a prompt as last resort
-      const shareUrl = `${window.location.origin}/memory/${memoryId}`;
+      const slug = generateMemorySlug(memoryTitle, memoryId);
+      const shareUrl = `${window.location.origin}/memory/${slug}`;
       if (window.prompt) {
         window.prompt('Copy this link manually:', shareUrl);
         toast.info('Please copy the link manually from the dialog above.');

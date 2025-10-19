@@ -5,7 +5,8 @@ const {
   triggerInsightGeneration,
   markInsightAsRead,
   toggleInsightFavorite,
-  getInsightStats
+  getInsightStats,
+  regenerateInsight // NEW
 } = require('../controllers/insightsController');
 const {
   getOnboardingStatus,
@@ -23,6 +24,9 @@ router.post('/generate', apiLimiter, triggerInsightGeneration);
 router.patch('/:id/read', markInsightAsRead);
 router.patch('/:id/favorite', toggleInsightFavorite);
 router.get('/stats', getInsightStats);
+
+// NEW: Regenerate insight endpoint
+router.post('/:id/regenerate', apiLimiter, regenerateInsight);
 
 // Onboarding endpoints
 router.get('/onboarding/status', getOnboardingStatus);

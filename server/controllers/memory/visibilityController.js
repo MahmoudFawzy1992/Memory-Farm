@@ -2,7 +2,9 @@ const Memory = require('../../models/Memory');
 
 // Toggle public/private on a memory (owner only)
 exports.toggleVisibility = async (req, res) => {
-  const memoryId = req.params.id;
+  // ✅ Extract ID from slug (supports both formats)
+  const { extractIdFromSlug } = require('../../utils/slugify');
+  const memoryId = extractIdFromSlug(req.params.id);
 
   try {
     const memory = await Memory.findById(memoryId);

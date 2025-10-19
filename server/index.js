@@ -18,6 +18,7 @@ const reportRoutes = require('./routes/report');
 const insightsRoutes = require('./routes/insights');
 const shareRoutes = require('./routes/share'); // NEW: Share routes
 const requireAuth = require('./middleware/requireAuth');
+const contactRoutes = require('./routes/contact');
 
 const app = express();
 
@@ -90,14 +91,14 @@ app.get('/health', (req, res) => {
 
 // Public routes
 app.use('/api/auth', authRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Protected routes
 app.use('/api/memory', requireAuth, memoryRoutes);
 app.use('/api/user', requireAuth, userRoutes);
 app.use('/api/report', requireAuth, reportRoutes);
 app.use('/api/insights', requireAuth, insightsRoutes);
-app.use('/api/share', requireAuth, shareRoutes); // NEW: Protected share routes
-
+app.use('/api/share', requireAuth, shareRoutes); 
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({ 

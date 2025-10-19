@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "../utils/axiosInstance";
 import { useAuth } from "../context/AuthContext";
-import { toast } from "react-toastify";
 import { motion } from "framer-motion";
 import useSimpleInsights from "../hooks/useSimpleInsights";
 import InsightCard from "../components/insights/InsightCard";
@@ -14,15 +13,14 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [memoryCount, setMemoryCount] = useState(0);
 
-  // Use insights hook
+  // Use insights hook with regenerate function
   const {
     insights,
     stats: insightStats,
     loading: insightsLoading,
     markAsRead,
-    toggleFavorite,
-    unreadCount,
-    favoriteInsights
+    regenerateInsight, // ✅ Added regenerate function
+    unreadCount
   } = useSimpleInsights();
 
   useEffect(() => {
@@ -198,7 +196,12 @@ export default function Dashboard() {
                 <InsightCard
                   insight={insight}
                   onMarkAsRead={markAsRead}
-                  onToggleFavorite={toggleFavorite}
+                  onRegenerate={
+                    // ✅ Only pass regenerate function if user has monthly regenerations left
+                    userData?.aiUsageTracking?.monthlyRegenerations?.count < 3 
+                      ? regenerateInsight 
+                      : null
+                  }
                   compact={true}
                 />
               </motion.div>
@@ -207,7 +210,7 @@ export default function Dashboard() {
         )}
       </motion.div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats - Removed Favorites */}
       {insightStats && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -216,18 +219,12 @@ export default function Dashboard() {
           className="mb-8"
         >
           <h3 className="text-lg font-semibold text-gray-900 mb-4">📈 Your Journey</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatCard
               icon="🎯"
               label="Total Insights"
               value={insightStats.totalInsights}
               color="purple"
-            />
-            <StatCard
-              icon="⭐"
-              label="Favorites"
-              value={insightStats.favoriteCount}
-              color="yellow"
             />
             <StatCard
               icon="🧠"
@@ -236,36 +233,21 @@ export default function Dashboard() {
               color="blue"
             />
             <StatCard
-              icon="🔍"
+              icon="🔔"
               label="Unread"
               value={insightStats.unreadCount}
               color="orange"
             />
-          </div>
-        </motion.div>
-      )}
 
-      {/* Favorite Insights Preview */}
-      {favoriteInsights.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            ⭐ Favorite Insights
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {favoriteInsights.slice(0, 4).map((insight) => (
-              <InsightCard
-                key={insight._id}
-                insight={insight}
-                onMarkAsRead={markAsRead}
-                onToggleFavorite={toggleFavorite}
-                compact={true}
-                showActions={false}
+            {/* Optional: Show monthly regeneration stats */}
+            {userData?.aiUsageTracking?.monthlyRegenerations && (
+              <StatCard
+                icon="🔄"
+                label="Regenerations Left"
+                value={`${Math.max(0, 3 - (userData.aiUsageTracking.monthlyRegenerations.count || 0))}/3`}
+                color="purple"
               />
-            ))}
+            )}
           </div>
         </motion.div>
       )}
@@ -323,7 +305,6 @@ function StatCard({ icon, label, value, color }) {
   const colorClasses = {
     purple: 'bg-purple-50 text-purple-700 border-purple-200',
     blue: 'bg-blue-50 text-blue-700 border-blue-200',
-    yellow: 'bg-yellow-50 text-yellow-700 border-yellow-200',
     orange: 'bg-orange-50 text-orange-700 border-orange-200'
   };
 

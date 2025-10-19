@@ -39,7 +39,7 @@ const insightSchema = new mongoose.Schema(
     message: {
       type: String,
       required: true,
-      maxlength: 500
+      maxlength: 600 // Increased from 500 to accommodate longer AI insights
     },
 
     // Trigger Context
@@ -66,6 +66,54 @@ const insightSchema = new mongoose.Schema(
         from: Date,
         to: Date
       }
+    },
+
+    // AI Metadata (NEW)
+    aiMetadata: {
+      model: {
+        type: String,
+        enum: ['gpt-4o-mini', 'llama-3.2', 'static', null],
+        default: null
+      },
+      tokensUsed: {
+        type: Number,
+        default: 0
+      },
+      inputTokens: {
+        type: Number,
+        default: 0
+      },
+      outputTokens: {
+        type: Number,
+        default: 0
+      },
+      cost: {
+        type: Number,
+        default: 0
+      },
+      generationTime: {
+        type: Number,
+        default: 0
+      },
+      wordCount: {
+        type: Number,
+        default: 0
+      },
+      truncated: {
+        type: Boolean,
+        default: false
+      },
+      regenerateCount: {
+        type: Number,
+        default: 0,
+        max: 3
+      },
+      fallbackReason: String
+    },
+
+    isAIGenerated: {
+      type: Boolean,
+      default: true
     },
 
     // Display Properties
@@ -121,7 +169,9 @@ insightSchema.index({ userId: 1, createdAt: -1 });
 insightSchema.index({ userId: 1, isVisible: 1, createdAt: -1 });
 insightSchema.index({ userId: 1, type: 1 });
 insightSchema.index({ userId: 1, triggerMemoryCount: 1 });
-insightSchema.index({ generatedAt: 1 }); // For cleanup tasks
+insightSchema.index({ generatedAt: 1 });
+insightSchema.index({ 'aiMetadata.model': 1 });
+insightSchema.index({ userId: 1, 'aiMetadata.regenerateCount': 1 });
 
 // Instance methods
 insightSchema.methods.markAsRead = function() {
@@ -132,6 +182,20 @@ insightSchema.methods.markAsRead = function() {
 
 insightSchema.methods.toggleFavorite = function() {
   this.isFavorited = !this.isFavorited;
+  return this.save();
+};
+
+// NEW: Check if can regenerate
+insightSchema.methods.canRegenerate = function() {
+  return (this.aiMetadata?.regenerateCount || 0) < 3;
+};
+
+// NEW: Increment regenerate count
+insightSchema.methods.incrementRegenerateCount = function() {
+  if (!this.aiMetadata) {
+    this.aiMetadata = {};
+  }
+  this.aiMetadata.regenerateCount = (this.aiMetadata.regenerateCount || 0) + 1;
   return this.save();
 };
 

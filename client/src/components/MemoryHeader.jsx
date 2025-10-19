@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { generateUserSlug } from "../utils/memorySlug";
+
 
 export default function MemoryHeader({ memory, memoryMetadata, authorInfo, onGoBack }) {
   if (!memory) return null;
@@ -86,7 +88,7 @@ export default function MemoryHeader({ memory, memoryMetadata, authorInfo, onGoB
             <>
               <span className="text-gray-400">•</span>
               <Link
-                to={`/user/${author._id || author.id}`}
+                to={`/user/${generateUserSlug(author.displayName, author._id || author.id)}`}
                 className="flex items-center gap-1 font-medium text-purple-600 hover:text-purple-800 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

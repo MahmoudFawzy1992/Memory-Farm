@@ -236,7 +236,7 @@ function Signup() {
         maxLength={254}
       />
 
-      <div className="space-y-1">
+      <div className="space-y-1 mb-4">
         <div className="relative">
           <FormInput
             label="Password"
@@ -250,14 +250,6 @@ function Signup() {
             disabled={loading}
             maxLength={128}
           />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-9 text-sm text-gray-500 hover:text-gray-700"
-            disabled={loading}
-          >
-            {showPassword ? "Hide" : "Show"}
-          </button>
         </div>
         
         <PasswordStrengthIndicator 

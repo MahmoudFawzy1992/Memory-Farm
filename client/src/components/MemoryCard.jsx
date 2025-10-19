@@ -5,6 +5,7 @@ import axios from "../utils/axiosInstance";
 import { useState, useMemo } from "react";
 import { toast } from "react-toastify";
 import ReportModal from "./ReportModal";
+import { generateMemorySlug, generateUserSlug } from "../utils/memorySlug";
 import { 
   extractTitle, 
   extractPreview, 
@@ -89,7 +90,7 @@ function MemoryCard({
         {/* Header */}
         <div className="p-4 pb-2">
           <div className="flex items-start justify-between mb-2">
-            <Link to={`/memory/${memory._id}`} className="flex-1">
+            <Link to={`/memory/${generateMemorySlug(displayTitle, memory._id)}`} className="flex-1">
               <h3 className="font-semibold text-gray-900 leading-tight hover:text-purple-600 transition-colors">
                 {displayTitle}
               </h3>
@@ -135,7 +136,7 @@ function MemoryCard({
               {displayDate && <span>{displayDate}</span>}
               {shouldShowAuthor && (
                 <Link 
-                  to={`/user/${authorObj._id || authorObj.id}`} 
+                  to={`/user/${generateUserSlug(authorObj.displayName, authorObj._id || authorObj.id)}`} 
                   className="font-medium text-purple-600 hover:text-purple-800 transition-colors"
                 >
                   👤 {authorObj.displayName}

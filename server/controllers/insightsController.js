@@ -169,3 +169,90 @@ exports.getInsightStats = async (req, res) => {
     res.status(500).json({ error: 'Failed to load insight statistics' });
   }
 };
+
+// NEW: Regenerate insight endpoint
+exports.regenerateInsight = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log(`\n🔄 Regenerate request for insight ${id}`);
+
+    // Get user to check monthly limit
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // ✅ NEW: Check monthly regeneration limit (3 per month)
+    if (!user.canRegenerateThisMonth()) {
+      const remainingThisMonth = user.getRemainingRegenerations();
+      return res.status(400).json({ 
+        error: 'Monthly regeneration limit reached',
+        message: `You've used all 3 regenerations this month. Your limit resets on the 1st of next month!`,
+        monthlyLimit: 3,
+        usedThisMonth: 3,
+        remainingThisMonth: 0,
+        resetDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString()
+      });
+    }
+
+    // Get existing insight
+    const existingInsight = await Insight.findOne({ 
+      _id: id, 
+      userId: req.user.id 
+    });
+
+    if (!existingInsight) {
+      return res.status(404).json({ error: 'Insight not found' });
+    }
+
+    // Check per-insight regenerate limit (max 3 times per insight)
+    if (!existingInsight.canRegenerate()) {
+      return res.status(400).json({ 
+        error: 'Insight regeneration limit reached',
+        message: 'This specific insight has been regenerated 3 times already. Try regenerating a different insight!',
+        insightRegenerateCount: existingInsight.aiMetadata?.regenerateCount || 3
+      });
+    }
+
+    // Regenerate the insight
+    const regeneratedInsight = await SimpleInsightsService.regenerateInsight(
+        id,
+        req.user.id
+      );
+
+      if (!regeneratedInsight) {
+        return res.status(500).json({ error: 'Failed to regenerate insight' });
+      }
+
+      // ✅ Track monthly regeneration
+      await user.trackRegeneration();
+
+      // ✅ Get fresh user data after tracking
+      const updatedUser = await User.findById(req.user.id);
+      const remainingThisMonth = Math.max(0, 3 - (updatedUser.aiUsageTracking.monthlyRegenerations?.count || 0));
+
+      console.log(`✅ Insight regenerated successfully\n`);
+
+      res.json({
+        success: true,
+        insight: regeneratedInsight,
+        regenerateCount: regeneratedInsight.aiMetadata?.regenerateCount || 0,
+        remainingRegenerations: 3 - (regeneratedInsight.aiMetadata?.regenerateCount || 0),
+        // ✅ FIXED: Accurate monthly stats with no negative numbers
+        monthlyStats: {
+          usedThisMonth: updatedUser.aiUsageTracking.monthlyRegenerations?.count || 0,
+          remainingThisMonth: remainingThisMonth,
+          monthlyLimit: 3
+        }
+      });
+
+
+  } catch (error) {
+    console.error('❌ Regenerate insight error:', error);
+    res.status(500).json({ 
+      error: 'Failed to regenerate insight',
+      details: error.message 
+    });
+  }
+};

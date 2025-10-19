@@ -9,6 +9,7 @@ import NewMemoryLayout from '../components/NewMemoryLayout';
 import MemoryFormActions from '../components/new-memory/MemoryFormActions';
 import FieldTutorial from '../components/onboarding/FieldTutorial';
 import { showInsightToast } from '../components/insights/SimpleInsightToast';
+import { generateMemorySlug } from '../utils/memorySlug';
 import { 
   validateMemoryForm, 
   getEmotionFromMoodBlocks
@@ -177,7 +178,8 @@ export default function NewMemory() {
       }
       
       showNotification('Memory created successfully!', 'success');
-      navigate(`/memory/${response.data.memory._id}`);
+      const createdMemory = response.data.memory;
+      navigate(`/memory/${generateMemorySlug(createdMemory.title, createdMemory._id)}`);
       
     } catch (err) {
       console.error('Error creating memory:', err);
