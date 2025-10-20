@@ -90,16 +90,16 @@ function Navbar() {
                   ✨ Features
                 </button>
                 <button
-                  onClick={() => navigateToSection('how-it-works')}
+                  onClick={() => navigateToSection('why-different')}
                   className="text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-blue-50 hover:text-teal-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200"
                 >
-                  🚀 How It Works
+                  🎨 Why Different
                 </button>
                 <button
-                  onClick={() => navigateToSection('future')}
+                  onClick={() => navigateToSection('who')}
                   className="text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-blue-50 hover:text-teal-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200"
                 >
-                  🔮 Future
+                  ❤️ Who It's For
                 </button>
                 <NavLink to="/login" className={navLinkClass}>
                   🔐 Login
