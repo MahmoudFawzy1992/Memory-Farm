@@ -179,16 +179,16 @@ function Navbar() {
                   ✨ Features
                 </button>
                 <button
-                  onClick={() => navigateToSection('how-it-works')}
+                  onClick={() => navigateToSection('why-different')}
                   className="block w-full text-left px-4 py-3 rounded-md text-sm font-semibold text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-blue-50 hover:text-teal-700 transition-colors duration-200"
                 >
-                  🚀 How It Works
+                  🎨 Why Different
                 </button>
                 <button
-                  onClick={() => navigateToSection('future')}
+                  onClick={() => navigateToSection('who')}
                   className="block w-full text-left px-4 py-3 rounded-md text-sm font-semibold text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-blue-50 hover:text-teal-700 transition-colors duration-200"
                 >
-                  🔮 Future
+                  ❤️ Who It's For
                 </button>
                 <NavLink to="/login" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
                   🔐 Login
