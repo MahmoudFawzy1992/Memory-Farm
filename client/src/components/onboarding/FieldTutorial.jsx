@@ -10,6 +10,17 @@ export default function FieldTutorial({ isActive, onComplete, onSkip }) {
   const [isVisible, setIsVisible] = useState(false);
   const [tutorialSteps, setTutorialSteps] = useState([]);
   const [completedSteps, setCompletedSteps] = useState(new Set());
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    // Update mobile detection on resize
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (isActive) {
@@ -44,7 +55,7 @@ export default function FieldTutorial({ isActive, onComplete, onSkip }) {
         
         setIsVisible(false);
         if (onComplete) onComplete();
-        toast.success('Tutorial completed! You\'re all set!');
+        toast.success('🎉 Tutorial completed! You\'re all set!');
       }
     } catch (error) {
       console.error('Error completing tutorial step:', error);
@@ -57,7 +68,7 @@ export default function FieldTutorial({ isActive, onComplete, onSkip }) {
       
       setIsVisible(false);
       if (onSkip) onSkip();
-      toast.info('Tutorial skipped. Check the FAQ for help anytime!');
+      toast.info('Tutorial skipped. Check the help button (?) anytime!');
     } catch (error) {
       console.error('Error skipping tutorial:', error);
     }
@@ -79,12 +90,12 @@ export default function FieldTutorial({ isActive, onComplete, onSkip }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black bg-opacity-30 z-50 pointer-events-none"
+        className={`fixed inset-0 z-50 pointer-events-none ${isMobile ? 'bg-black bg-opacity-40' : 'bg-black bg-opacity-30'}`}
       >
-        {/* Spotlight effect */}
+        {/* Spotlight effect (desktop only) */}
         <TutorialSpotlight target={currentTutorialStep?.target} />
         
-        {/* Tutorial popup */}
+        {/* Tutorial popup (bottom sheet on mobile, floating on desktop) */}
         <TutorialPopup
           step={currentTutorialStep}
           currentStep={currentStep}

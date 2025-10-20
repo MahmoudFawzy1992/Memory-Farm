@@ -3,33 +3,38 @@ import { motion } from 'framer-motion';
 
 /**
  * Spotlight effect component that highlights tutorial target elements
+ * DISABLED on mobile for better UX
  */
 export default function TutorialSpotlight({ target }) {
   const [elementRect, setElementRect] = useState(null);
+  const isMobile = window.innerWidth < 768;
 
   useEffect(() => {
     if (target) {
       const element = document.querySelector(target);
       if (element) {
-        // Scroll element into view
+        // Always scroll element into view (mobile + desktop)
         element.scrollIntoView({ 
           behavior: 'smooth', 
           block: 'center',
           inline: 'center'
         });
         
-        // Wait for scroll to complete, then get position
-        setTimeout(() => {
-          const rect = element.getBoundingClientRect();
-          setElementRect(rect);
-        }, 500);
+        // Only get position for desktop spotlight
+        if (!isMobile) {
+          setTimeout(() => {
+            const rect = element.getBoundingClientRect();
+            setElementRect(rect);
+          }, 500);
+        }
       } else {
         console.warn(`Tutorial target not found: ${target}`);
       }
     }
-  }, [target]);
+  }, [target, isMobile]);
 
-  if (!elementRect) return null;
+  // Don't render spotlight on mobile
+  if (isMobile || !elementRect) return null;
 
   const spotlightSize = Math.min(Math.max(elementRect.width + 40, elementRect.height + 40), 200);
 

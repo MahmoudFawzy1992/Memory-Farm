@@ -12,15 +12,15 @@ function Navbar() {
   const navLinkClass = ({ isActive }) =>
     `px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200 ${
       isActive
-        ? "bg-purple-200 text-purple-800"
-        : "text-purple-600 hover:bg-purple-100 hover:text-purple-800"
+        ? "bg-gradient-to-r from-teal-100 to-blue-100 text-teal-800"
+        : "text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-blue-50 hover:text-teal-700"
     }`;
 
   const mobileNavLinkClass = ({ isActive }) =>
     `block px-4 py-3 rounded-md text-sm font-semibold transition-colors duration-200 ${
       isActive
-        ? "bg-purple-200 text-purple-800"
-        : "text-purple-600 hover:bg-purple-100 hover:text-purple-800"
+        ? "bg-gradient-to-r from-teal-100 to-blue-100 text-teal-800"
+        : "text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-blue-50 hover:text-teal-700"
     }`;
 
   const navigateToSection = (sectionId) => {
@@ -40,7 +40,7 @@ function Navbar() {
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   return (
-    <nav className="bg-purple-50 border-b border-purple-200 shadow-sm sticky top-0 z-50">
+    <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50 backdrop-blur-sm bg-white/95">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-24">
           {/* Logo / Brand */}
@@ -54,7 +54,6 @@ function Navbar() {
               <span className="sr-only">Memory Farm</span>
             </NavLink>
           </div>
-
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex gap-4 items-center">
@@ -86,26 +85,29 @@ function Navbar() {
               <>
                 <button
                   onClick={() => navigateToSection('features')}
-                  className="text-purple-600 hover:bg-purple-100 hover:text-purple-800 px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200"
+                  className="text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-blue-50 hover:text-teal-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200"
                 >
                   ✨ Features
                 </button>
                 <button
                   onClick={() => navigateToSection('how-it-works')}
-                  className="text-purple-600 hover:bg-purple-100 hover:text-purple-800 px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200"
+                  className="text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-blue-50 hover:text-teal-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200"
                 >
                   🚀 How It Works
                 </button>
                 <button
                   onClick={() => navigateToSection('future')}
-                  className="text-purple-600 hover:bg-purple-100 hover:text-purple-800 px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200"
+                  className="text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-blue-50 hover:text-teal-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200"
                 >
                   🔮 Future
                 </button>
                 <NavLink to="/login" className={navLinkClass}>
                   🔐 Login
                 </NavLink>
-                <NavLink to="/signup" className={navLinkClass}>
+                <NavLink 
+                  to="/signup" 
+                  className="px-4 py-2 rounded-md text-sm font-semibold bg-gradient-to-r from-teal-500 to-blue-600 text-white hover:from-teal-600 hover:to-blue-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                >
                   ✍️ Sign Up
                 </NavLink>
               </>
@@ -115,7 +117,7 @@ function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={toggleMobileMenu}
-            className="md:hidden p-2 rounded-md text-purple-600 hover:bg-purple-100 transition-colors duration-200"
+            className="md:hidden p-2 rounded-md text-teal-600 hover:bg-teal-50 transition-colors duration-200"
             aria-label="Toggle mobile menu"
           >
             <svg
@@ -172,26 +174,30 @@ function Navbar() {
               <>
                 <button
                   onClick={() => navigateToSection('features')}
-                  className="block w-full text-left px-4 py-3 rounded-md text-sm font-semibold text-purple-600 hover:bg-purple-100 hover:text-purple-800 transition-colors duration-200"
+                  className="block w-full text-left px-4 py-3 rounded-md text-sm font-semibold text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-blue-50 hover:text-teal-700 transition-colors duration-200"
                 >
                   ✨ Features
                 </button>
                 <button
                   onClick={() => navigateToSection('how-it-works')}
-                  className="block w-full text-left px-4 py-3 rounded-md text-sm font-semibold text-purple-600 hover:bg-purple-100 hover:text-purple-800 transition-colors duration-200"
+                  className="block w-full text-left px-4 py-3 rounded-md text-sm font-semibold text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-blue-50 hover:text-teal-700 transition-colors duration-200"
                 >
                   🚀 How It Works
                 </button>
                 <button
                   onClick={() => navigateToSection('future')}
-                  className="block w-full text-left px-4 py-3 rounded-md text-sm font-semibold text-purple-600 hover:bg-purple-100 hover:text-purple-800 transition-colors duration-200"
+                  className="block w-full text-left px-4 py-3 rounded-md text-sm font-semibold text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-blue-50 hover:text-teal-700 transition-colors duration-200"
                 >
                   🔮 Future
                 </button>
                 <NavLink to="/login" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
                   🔐 Login
                 </NavLink>
-                <NavLink to="/signup" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+                <NavLink 
+                  to="/signup" 
+                  className="block px-4 py-3 rounded-md text-sm font-semibold bg-gradient-to-r from-teal-500 to-blue-600 text-white hover:from-teal-600 hover:to-blue-700 transition-all duration-200 shadow-md text-center"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
                   ✍️ Sign Up
                 </NavLink>
               </>

@@ -6,7 +6,23 @@
  */
 export const calculatePopupPosition = (targetSelector, placement) => {
   const element = document.querySelector(targetSelector);
+  const isMobile = window.innerWidth < 768;
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
   
+  // MOBILE: Always use fixed bottom sheet positioning
+  if (isMobile) {
+    return {
+      position: 'fixed',
+      bottom: '20px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      width: `${Math.min(340, viewportWidth - 40)}px`,
+      maxWidth: '90vw'
+    };
+  }
+
+  // DESKTOP: Calculate position relative to target element
   if (!element) {
     // If element not found, center on screen
     return { 
@@ -17,50 +33,12 @@ export const calculatePopupPosition = (targetSelector, placement) => {
   }
 
   const rect = element.getBoundingClientRect();
-  const isMobile = window.innerWidth < 768;
-  const viewportHeight = window.innerHeight;
-  const viewportWidth = window.innerWidth;
-  
-  // Responsive popup dimensions
   const popup = { 
-    width: isMobile ? Math.min(300, viewportWidth - 30) : 320,
+    width: 320,
     height: 180
   };
-  
-  if (isMobile) {
-    return calculateMobilePosition(rect, popup, viewportHeight, viewportWidth);
-  } else {
-    return calculateDesktopPosition(rect, popup, placement, viewportHeight, viewportWidth);
-  }
-};
 
-/**
- * Calculates position for mobile devices
- */
-const calculateMobilePosition = (rect, popup, viewportHeight, viewportWidth) => {
-  const spaceAbove = rect.top;
-  const spaceBelow = viewportHeight - rect.bottom;
-  const margin = 15;
-  
-  if (spaceBelow >= popup.height + margin) {
-    // Position below element
-    return {
-      top: Math.min(rect.bottom + margin, viewportHeight - popup.height - margin),
-      left: Math.max(margin, Math.min((viewportWidth - popup.width) / 2, viewportWidth - popup.width - margin))
-    };
-  } else if (spaceAbove >= popup.height + margin) {
-    // Position above element
-    return {
-      top: Math.max(margin, rect.top - popup.height - margin),
-      left: Math.max(margin, Math.min((viewportWidth - popup.width) / 2, viewportWidth - popup.width - margin))
-    };
-  } else {
-    // Center in safe area if neither above nor below fits
-    return {
-      top: Math.max(margin, (viewportHeight - popup.height) / 2),
-      left: Math.max(margin, (viewportWidth - popup.width) / 2)
-    };
-  }
+  return calculateDesktopPosition(rect, popup, placement, viewportHeight, viewportWidth);
 };
 
 /**
