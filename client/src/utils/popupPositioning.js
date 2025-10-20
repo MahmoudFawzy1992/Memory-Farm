@@ -12,12 +12,13 @@ export const calculatePopupPosition = (targetSelector, placement) => {
   
   // MOBILE: Always use fixed bottom sheet positioning
   if (isMobile) {
+    const popupWidth = Math.min(340, viewportWidth - 40);
     return {
       position: 'fixed',
       bottom: '20px',
       left: '50%',
-      transform: 'translateX(-50%)',
-      width: `${Math.min(340, viewportWidth - 40)}px`,
+      marginLeft: `-${popupWidth / 2}px`,  // ✅ This centers without transform
+      width: `${popupWidth}px`,
       maxWidth: '90vw'
     };
   }

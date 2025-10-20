@@ -293,7 +293,7 @@ exports.getTutorialSteps = async (req, res) => {
         {
           id: 'block_editor',
           target: '.floating-block-selector',
-          title: 'Rich Content Blocks ✨',
+          title: 'Floating Button ✨',
           content: 'Add more to your memory! Use images, todo list, text blocks. Rich content helps create better personal insights!',
           placement: 'left',
           category: 'advanced'
